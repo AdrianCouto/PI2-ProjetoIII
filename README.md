@@ -1,5 +1,6 @@
 # PI2-ProjetoIII
-Será utilizado como base para continuidade deste, o projeto desenvolvido anteriormente: https://github.com/gabrieltm-sudo/PI2-ProjetoI e https://github.com/gabrieltm-sudo/PI2-ProjetoII
+Será utilizado como base para continuidade deste, o projeto desenvolvido anteriormente: https://github.com/gabrieltm-sudo/PI2-ProjetoI e https://github.com/gabrieltm-sudo/PI2-ProjetoII.
+
 Simulador acadêmico de uma arquitetura MiniMIPS de 8 bits, organizado em Pipeline. Implementado em C com interface por menu, suporta operações de carga/armazenamento, instruções aritméticas e de controle de fluxo.
 
 **Autores**
