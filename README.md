@@ -41,4 +41,3 @@ make rm           # remove arquivos gerados
 Observações
 
 Projeto para fins educacionais (disciplina Projeto Integrador II).
-Consulte Arquivos Importantes/instMiniMips.txt para o formato das instruções a serem carregadas na memória.

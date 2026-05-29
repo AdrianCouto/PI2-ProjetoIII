@@ -2,33 +2,36 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 #include "minimips.h"
 
 int main(){
-    int opcao, pc = 0, qntdInst = 0, verificaMem = 0;
+    int pc = 0, opcao, linhas = 0;
+
     estatInstrucoes estatInst = {0};
-    regEstado regEstado;
+
     sinaisUC sinais;
-    MemoriaUnificada memoria[TAM_MEMORIA] = {0};
 
-    Historico *hist = malloc(sizeof(Historico));
-    hist->topo = NULL;
+    instrucao *memoria = NULL;
+
+    historico hist;
+    hist.topo = 0;
+
     int *bReg = inicializaBReg();
-
-    salvaEstado(hist, pc, bReg, estatInst, &regEstado, memoria);
+    int *memDados = inicializaMemDados();
 
     while (1) {
         printf("\nMenu:\n\n");
         printf("1. Carregar Memória de Instruções (.mem)\n");
-        printf("2. Imprimir memórias (instruções e dados)\n");
-        printf("3. Imprimir Banco de Registradores\n");
-        printf("4. Imprimir todo o Simulador\n");
-        printf("5. Salvar .asm\n");
-        printf("6. Salvar .mem\n");
-        printf("7. Executa programa (run)\n");
-        printf("8. Executa um ciclo (step)\n");
-        printf("9. Volta um ciclo (back)\n");
-        printf("10. Reset\n");
+        printf("2. Carregar Memória de Dados (.dat)\n");
+        printf("3. Imprimir memórias (instruções e dados)\n");
+        printf("4. Imprimir Banco de Registradores\n");
+        printf("5. Imprimir todo o Simulador\n");
+        printf("6. Salvar .asm\n");
+        printf("7. Salvar .dat\n");
+        printf("8. Executa programa (run)\n");
+        printf("9. Executa uma instrução (step)\n");
+        printf("10. Volta uma instrução (back)\n");
         printf("0. Sair\n\n");
         printf("Digite uma opção: ");
 
@@ -37,40 +40,42 @@ int main(){
 
         switch (opcao) {
             case 1:
-                //Carregar Memórias
-                char arq[50];
-                printf("\nDigite o nome do arquivo da memória (.mem): ");
+                //Carregar Mem de Instr.
+                char arq[20];
+                printf("\nDigite o nome do arquivo da memória de instruções (.mem): ");
 
                 fgets(arq, sizeof(arq), stdin);
                 arq[strcspn(arq, "\n")] = '\0';
 
-                verificaMem = lerMemUnificada(arq, memoria);
-                if(verificaMem!=0){
-                    pc = 0;
-                    memset(&regEstado, 0, sizeof(regEstado));
-                    memset(bReg, 0, sizeof(int)*8);
-                    memset(&estatInst, 0, sizeof(estatInst));
-                    regEstado.estadoAtual = 0;
+                linhas = contaLinhas(arq);
+                printf("\n%d Instruções carregadas!\n", linhas);
 
-                    limpaHistorico(hist);
-                    salvaEstado(hist, pc, bReg, estatInst, &regEstado, memoria);
-
-                    qntdInst = verificaMem;
-                    verificaMem = 1;
-                }
+                lerMem(arq, &memoria, linhas);
                 break;
 
             case 2:
-                // Imprimir memórias (tanto instruções quanto dados)
-                imprimeMemorias(memoria, bReg);
+                //Carregar Mem de Dados
+                char arqMem[20];
+                printf("\nDigite o nome do arquivo da memória de dados (.dat): ");
+
+                fgets(arqMem, sizeof(arqMem), stdin);
+                arqMem[strcspn(arqMem, "\n")] = '\0';
+
+                lerMemDados(arqMem, &memDados);
 
                 break;
 
             case 3:
+                // Imprimir memórias (tanto instruções quando dados)
+                imprimeMemorias(memoria,memDados);
+
+                break;
+
+            case 4:
                 //Imprimir Banco de Registradores
                 imprimeBancoRegistradores(bReg);
                 break;
-            case 4:
+            case 5:
                 //Imprimir simulador
                 printf("\nImpressão do simulador:\n");
                 do{
@@ -82,71 +87,50 @@ int main(){
                             imprimeBancoRegistradores(bReg);
                             break;
                         case 2:
-                            imprimeMemorias(memoria, bReg);
+                            imprimeMemorias(memoria,memDados);
                             break;
                         case 3:
                             imprimeEstatistica(estatInst);
                             break;
                         default:
-                            printf("\nOpção inválida! Por favor selecione uma das opções disponíveis.\n");
+                            printf("Opção inválida! Por favor selecione uma das opções disponíveis.\n");
                             break;
                     }
                 }while(opcao<1 || opcao>3);
 
                 break;
 
-            case 5:
-                // Salvar .asm
-                salvaASM(memoria, qntdInst, &regEstado, bReg);
-                break;
-
             case 6:
-                salvaMem(memoria, qntdInst);
+                // Salvar .asm
+                salvaASM(memoria, linhas);
                 break;
 
             case 7:
-                if(verificaMem)
-                    run(memoria, bReg, &sinais, &pc, &estatInst, &regEstado);
-                else
-                    printf("\nCarregue um .mem primeiro.\n");
+                // Salvar .dat
+                salvaDAT(memDados);
                 break;
 
-            case 8: // Step
-                if (verificaMem) {
-                        salvaEstado(hist, pc, bReg, estatInst, &regEstado, memoria);
-                        step(memoria, bReg, &sinais, &pc, &estatInst, &regEstado);
-
-                } else {
-                    printf("\nCarregue um .mem primeiro.\n");
-                }
+            case 8:
+                //Executar programa (run)
+                run(memoria, bReg, &sinais, &pc, memDados, &estatInst);
                 break;
 
-            case 9: { // Back
-                if (verificaMem) {
-                    Estado *snap = voltaEstado(hist);
-                    if (snap) {
-                        restauraEstado(&pc, bReg, &estatInst, &regEstado, memoria, snap);
-                        liberaEstado(snap);
-                    }
-                } else {
-                    printf("\nCarregue um .mem primeiro.\n");
-                }
+            case 9:
+                //Executa instrução (step)
+                salvaEstado(&hist, pc, memDados, bReg, &estatInst);
+                step(memoria, bReg, &sinais, &pc, memDados, &estatInst);
                 break;
-            }
 
-            case 10: // Reset
-                resetSimulador(memoria, &pc, bReg, &estatInst, &regEstado);
-                limpaHistorico(hist);
-                pc = 0;
-                salvaEstado(hist, pc, bReg, estatInst, &regEstado, memoria);
-                printf("\nReset feito com sucesso!\n");
+            case 10:
+                //Voltar instrução (back)
+                voltaInstrucao(&hist, &pc, memDados, bReg, &estatInst);
                 break;
 
             case 0:
-                // Sair
-                limpaHistorico(hist);
+                //Sair
                 free(bReg);
-
+                free(memoria);
+                free(memDados);
                 printf("\nSaindo do programa...\n");
                 return 0;
 
