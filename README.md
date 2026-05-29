@@ -22,7 +22,6 @@ Interface interativa do menu para carregar e executar programas
 - minimips.h — definições e protótipos
 - memoria.mem — arquivo de memória com instruções e dados
 - makefile — regras de compilação e execução
-- Arquivos Importantes/instMiniMips.txt — instruções e formato suportado
 
 **Requisitos**
 
@@ -38,6 +37,7 @@ make compile      # compila os binários
 make run          # executa o simulador (./exec)
 make compilerun   # compila e executa em sequência
 make rm           # remove arquivos gerados
-Observações
+
+**Observações**
 
 Projeto para fins educacionais (disciplina Projeto Integrador II).
