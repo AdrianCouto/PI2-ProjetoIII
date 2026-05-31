@@ -10,11 +10,16 @@
 
 // struct das estatísticas
 typedef struct{
+    // estatísticas das instruções
     int tipoI;
     int tipoJ;
     int tipoR;
     int total;
     int add, sub, and, or, addi, beq, lw, sw, j;
+
+    // estatísticas de ciclos, CPI e stalls até o momento
+    int ciclos, stalls/*, hazards*/;
+    float CPI;
 } estatInstrucoes;
 
 // struct de sinais
@@ -48,6 +53,46 @@ typedef struct {
     uint8_t addr;
     int decodificado;
 } instrucao;
+
+typedef struct{
+    int pc;
+    uint16_t instrucao;
+}IF_ID;
+
+typedef struct{
+    sinaisUC sinais;
+    uint8_t opcode;
+    int8_t A; // RS
+    int8_t B; // RT
+    uint8_t rs;
+    uint8_t rt; // Segue pois pode ser utilizado como destino no WB
+    uint8_t rd;
+    uint8_t funct;
+    int8_t imm;
+}ID_EX;
+
+typedef struct{
+    sinaisUC sinais; // RegDst, UlaFont e ControleUla ficam
+    uint8_t opcode;
+    int8_t ulaSaida;
+    int8_t B; // Valor escrito na memória em um store (RT)
+    uint8_t rd;
+}EX_MEM;
+
+typedef struct{
+    sinaisUC sinais; // Branch, Jump e EscMem ficam
+    uint8_t opcode;
+    int8_t mem;
+    int8_t ulaSaida;
+    uint8_t rd;
+}MEM_WB;
+
+typedef struct{
+    IF_ID regIF_ID;
+    ID_EX regID_EX;
+    EX_MEM regEX_MEM;
+    MEM_WB regMEM_WB;
+}registradoresPipeline;
 
 typedef struct {
     int pc;
@@ -83,6 +128,7 @@ End: 8 bits;
 // ------------------------------ PROTÓTIPOS -------------------------------
 
 // MENU / CONTROLE DO SISTEMA
+void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc);
 void imprimeEstatistica(estatInstrucoes estatInst);
 void salvaASM(instrucao *memoria, int linhas);
 void salvaDAT(int *memDados);

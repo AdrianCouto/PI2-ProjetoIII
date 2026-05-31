@@ -22,6 +22,7 @@ int main(){
 
     while (1) {
         printf("\nMenu:\n\n");
+        printf("0. Sair do Programa\n");
         printf("1. Carregar Memória de Instruções (.mem)\n");
         printf("2. Carregar Memória de Dados (.dat)\n");
         printf("3. Imprimir memórias (instruções e dados)\n");
@@ -31,8 +32,7 @@ int main(){
         printf("7. Salvar .dat\n");
         printf("8. Executa programa (run)\n");
         printf("9. Executa uma instrução (step)\n");
-        printf("10. Volta uma instrução (back)\n");
-        printf("0. Sair\n\n");
+        printf("10. Volta uma instrução (back)\n\n");
         printf("Digite uma opção: ");
 
         scanf("%d", &opcao);
