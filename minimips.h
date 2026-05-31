@@ -10,12 +10,17 @@
 
 // struct das estatísticas
 typedef struct{
+    // Estatísticas das instruções
     int tipoI;
     int tipoJ;
     int tipoR;
     int total;
     int add, sub, and, or, addi, beq, lw, sw, j;
-} estatInstrucoes;
+
+    // Estatísticas de ciclos, CPI e stalls até o momento
+    int ciclos, stalls/*, hazards*/;
+    float CPI;
+} estatInstrucoes; // Se necessário, modificar nome para se adequar com os novos campos
 
 // struct de sinais
 typedef struct{
@@ -83,6 +88,7 @@ End: 8 bits;
 // ------------------------------ PROTÓTIPOS -------------------------------
 
 // MENU / CONTROLE DO SISTEMA
+void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc);
 void imprimeEstatistica(estatInstrucoes estatInst);
 void salvaASM(instrucao *memoria, int linhas);
 void salvaDAT(int *memDados);

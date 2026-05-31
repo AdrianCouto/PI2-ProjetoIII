@@ -131,46 +131,7 @@ void run(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDados
 
         memoria[*pc].decodificado = 1;
         // Contabiliza estatística
-        switch(memoria[*pc].tipoInst){
-            case 0:
-                switch(memoria[*pc].opcode){
-                    case 4:
-                        (*estatInst).addi++;
-                        break;
-                    case 8:
-                        (*estatInst).beq++;
-                        break;
-                    case 11:
-                        (*estatInst).lw++;
-                        break;
-                    case 15:
-                        (*estatInst).sw++;
-                        break;
-                }
-                (*estatInst).tipoI++;
-                break;
-            case 1:
-                (*estatInst).j++;
-                (*estatInst).tipoJ++;
-                break;
-            case 2:
-            switch(memoria[*pc].funct){
-                case 0:
-                        (*estatInst).add++;
-                        break;
-                    case 2:
-                        (*estatInst).sub++;
-                        break;
-                    case 4:
-                        (*estatInst).and++;
-                        break;
-                    case 5:
-                        (*estatInst).or++;
-                        break;
-                }
-                (*estatInst).tipoR++;
-                break;
-        }
+        contabilizaEstat(memoria, estatInst, *pc);
 
         // Controle
         unidadeControle(&memoria[*pc], sinais);
@@ -211,46 +172,8 @@ void step(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDado
 
     memoria[*pc].decodificado = 1;
     // Contabiliza estatística
-    switch(memoria[*pc].tipoInst){
-        case 0:
-            switch(memoria[*pc].opcode){
-                case 4:
-                    (*estatInst).addi++;
-                    break;
-                case 8:
-                    (*estatInst).beq++;
-                    break;
-                case 11:
-                    (*estatInst).lw++;
-                    break;
-                case 15:
-                    (*estatInst).sw++;
-                    break;
-            }
-            (*estatInst).tipoI++;
-            break;
-        case 1:
-            (*estatInst).j++;
-            (*estatInst).tipoJ++;
-            break;
-        case 2:
-        switch(memoria[*pc].funct){
-            case 0:
-                    (*estatInst).add++;
-                    break;
-                case 2:
-                    (*estatInst).sub++;
-                    break;
-                case 4:
-                    (*estatInst).and++;
-                    break;
-                case 5:
-                    (*estatInst).or++;
-                    break;
-            }
-            (*estatInst).tipoR++;
-            break;
-    }
+    contabilizaEstat(memoria, estatInst, *pc);
+
     // Controle
     unidadeControle(&memoria[*pc], sinais);
 
@@ -698,12 +621,68 @@ void salvaDAT(int *memDados){
     printf("\nArquivo '%s' salvo!\n",nomeDAT);
 }
 
+void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc){
+    switch(memoria[pc].tipoInst){
+        case 0:
+            switch(memoria[pc].opcode){
+                case 4:
+                    (*estat).addi++;
+                    break;
+                case 8:
+                    (*estat).beq++;
+                    break;
+                case 11:
+                    (*estat).lw++;
+                    break;
+                case 15:
+                    (*estat).sw++;
+                    break;
+            }
+            (*estat).tipoI++;
+            break;
+        case 1:
+            (*estat).j++;
+            (*estat).tipoJ++;
+            break;
+        case 2:
+        switch(memoria[pc].funct){
+            case 0:
+                    (*estat).add++;
+                    break;
+                case 2:
+                    (*estat).sub++;
+                    break;
+                case 4:
+                    (*estat).and++;
+                    break;
+                case 5:
+                    (*estat).or++;
+                    break;
+            }
+            (*estat).tipoR++;
+            break;
+    }
+
+}
+
+
 void imprimeEstatistica(estatInstrucoes estatInst){
     printf("\n========================================\n");
-    printf("      Estatísticas de instruções\n");
+    printf("      Estatísticas do Simulador:\n");
     printf("========================================\n");
-    printf("Total executadas: %d\n", estatInst.total);
+    
+    printf("\nTotal executadas: %d\n", estatInst.total);
+    printf("Ciclos: %d\n", estatInst.ciclos);
 
+    estatInst.CPI = 0;
+    if(estatInst.total>0){
+        estatInst.CPI = (float)estatInst.ciclos/(float)estatInst.total;
+    }
+    
+    printf("CPI (Ciclos por Instrução): %.2f\n", estatInst.CPI);
+    printf("Stalls: %d\n", estatInst.stalls);
+    
+    printf("\nEstatísticas de instruções\n");
     printf("\nPor tipo:\n");
     printf("Tipo R: %d\n", estatInst.tipoR);
     printf("Tipo I: %d\n", estatInst.tipoI);
@@ -715,6 +694,8 @@ void imprimeEstatistica(estatInstrucoes estatInst){
     printf("I -> addi: %d | beq: %d | lw: %d | sw: %d\n",
            estatInst.addi, estatInst.beq, estatInst.lw, estatInst.sw);
     printf("J -> j: %d\n", estatInst.j);
+
+
     printf("========================================\n\n");
 }
 
