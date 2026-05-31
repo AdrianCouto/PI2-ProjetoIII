@@ -84,7 +84,7 @@ typedef struct{
     uint8_t opcode;
     int8_t mem;
     int8_t ulaSaida;
-    uint8_t RD;
+    uint8_t rd;
 }MEM_WB;
 
 typedef struct{
