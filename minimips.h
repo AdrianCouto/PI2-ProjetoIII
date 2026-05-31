@@ -20,7 +20,7 @@ typedef struct{
     // estatísticas de ciclos, CPI e stalls até o momento
     int ciclos, stalls/*, hazards*/;
     float CPI;
-} estatInstrucoes; // se necessário, modificar nome para se adequar com os novos campos
+} estatInstrucoes;
 
 // struct de sinais
 typedef struct{
