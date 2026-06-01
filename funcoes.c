@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <ncurses.h>
 #include "minimips.h"
 
 FILE *arquivo, *arquivoMemDados;
@@ -324,6 +325,58 @@ void unidadeControle(instrucao *instrucao, sinaisUC *sinais){
 
             break;
     }
+}
+
+void carregaID_EX(instrucao *inst, int *bReg, registradoresPipeline *pipe){
+    
+    sinaisUC sinais;
+
+    decodificaInst(inst); //talvez tirar esse decodifica daqui para melhor representação do simulador
+
+    unidadeControle(inst, &sinais); //essa chamada da UC aqui também
+
+    pipe->regID_EX.sinais = sinais; 
+
+    pipe->regID_EX.opcode = inst->opcode;
+    pipe->regID_EX.rs = inst->rs;
+    pipe->regID_EX.rt = inst->rt;
+    pipe->regID_EX.rd = inst->rd;
+    pipe->regID_EX.funct = inst->funct;
+    pipe->regID_EX.imm = inst->imm;
+
+    pipe->regID_EX.A = bReg[inst->rs];
+    pipe->regID_EX.B = bReg[inst->rt];
+}
+
+void carregaEX_MEM(registradoresPipeline *pipe, int8_t resultadoULA){
+    
+    pipe->regEX_MEM.sinais = pipe->regID_EX.sinais;
+
+    pipe->regEX_MEM.opcode = pipe->regID_EX.opcode;
+
+    pipe->regEX_MEM.ulaSaida = resultadoULA;
+
+    pipe->regEX_MEM.B = pipe->regID_EX.B;
+
+    if(pipe->regID_EX.sinais.RegDst){
+        pipe->regEX_MEM.rd = pipe->regID_EX.rd;
+    }else{
+        pipe->regEX_MEM.rd = pipe->regID_EX.rt;
+    }
+}
+
+void carregaMEM_WB(registradoresPipeline *pipe, int8_t dadoMemoria){
+    
+    pipe->regMEM_WB.sinais = pipe->regEX_MEM.sinais;
+
+    pipe->regMEM_WB.opcode = pipe->regEX_MEM.opcode;
+
+    pipe->regMEM_WB.rd = pipe->regEX_MEM.rd;
+
+    pipe->regMEM_WB.ulaSaida = pipe->regEX_MEM.ulaSaida;
+
+    pipe->regMEM_WB.mem = dadoMemoria;
+
 }
 
 int *inicializaBReg(){
@@ -816,4 +869,25 @@ void decodifica(instrucao *instrucao){
         (*instrucao).imm = ((*instrucao).instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
         (*instrucao).imm = extensorBit((*instrucao).imm);
     }
+}
+
+//---------------------------------------------------FUNÇÕES NCURSE--------------------------------------------------------------//
+
+void printMenu(){
+
+    mvprintw(1, 25, "MINIMIPS");
+    mvprintw(3, 5,  "0. Sair do Programa");
+    mvprintw(4, 5,  "1. Carregar Memoria de Instrucoes (.mem)");
+    mvprintw(5, 5,  "2. Carregar Memoria de Dados (.dat)");
+    mvprintw(6, 5,  "3. Imprimir memorias");
+    mvprintw(7, 5,  "4. Imprimir Banco de Registradores");
+    mvprintw(8, 5,  "5. Imprimir todo o Simulador");
+    mvprintw(9, 5,  "6. Salvar .asm");
+    mvprintw(10, 5, "7. Salvar .dat");
+    mvprintw(11, 5, "8. Executa programa (run)");
+    mvprintw(12, 5, "9. Executa uma instrucao (step)");
+    mvprintw(13, 5, "10. Volta uma instrucao (back)");
+    mvprintw(15, 5, "Digite uma opcao: ");
+
+    refresh();
 }

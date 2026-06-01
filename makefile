@@ -1,6 +1,3 @@
-compile:
-	gcc -c -g funcoes.c -o funcoes
-	gcc -Wall -Wextra -g mainminimips.c funcoes -o exec
 
 help:
 	@echo "Funcionalidades:"
@@ -8,12 +5,16 @@ help:
 	@echo "Digite make run para compilar e executar o arquivo;"
 	@echo "Digite make rm para excluir os arquivos gerados."
 
+compile:
+	gcc -c -Wall -Wextra -g funcoes.c -o funcoes.o
+	gcc -Wall -Wextra -g mainminimips.c funcoes.o -lncurses -o exec
+
 run:
-	gcc -c -g funcoes.c -o funcoes
-	gcc -Wall -Wextra -g mainminimips.c funcoes -o exec
+	gcc -c -Wall -Wextra -g funcoes.c -o funcoes.o
+	gcc -Wall -Wextra -g mainminimips.c funcoes.o -lncurses -o exec
 	./exec
 
 rm:
-	rm -f funcoes
+	rm -f funcoes.o
 	rm -f exec
 	rm -f *.asm
