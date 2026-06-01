@@ -3,9 +3,15 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <ncurses.h>
 #include "minimips.h"
 
 int main(){
+
+    /*initscr(); //ainda ta bugando e não deixa o simulador ser executado de foram correta(print menu com ncurse)
+    cbreak();
+    noecho();*/
+
     int pc = 0, opcao, linhas = 0;
 
     estatInstrucoes estatInst = {0};
@@ -21,22 +27,28 @@ int main(){
     int *memDados = inicializaMemDados();
 
     while (1) {
-        printf("\nMenu:\n\n");
-        printf("0. Sair do Programa\n");
-        printf("1. Carregar Memória de Instruções (.mem)\n");
-        printf("2. Carregar Memória de Dados (.dat)\n");
+
+        printf("\nMenu:\n\n"); 
+        printf("0. Sair do Programa\n"); 
+        printf("1. Carregar Memória de Instruções (.mem)\n"); 
+        printf("2. Carregar Memória de Dados (.dat)\n"); 
         printf("3. Imprimir memórias (instruções e dados)\n");
-        printf("4. Imprimir Banco de Registradores\n");
+        printf("4. Imprimir Banco de Registradores\n"); 
         printf("5. Imprimir todo o Simulador\n");
         printf("6. Salvar .asm\n");
-        printf("7. Salvar .dat\n");
+        printf("7. Salvar .dat\n"); 
         printf("8. Executa programa (run)\n");
-        printf("9. Executa uma instrução (step)\n");
-        printf("10. Volta uma instrução (back)\n\n");
-        printf("Digite uma opção: ");
-
-        scanf("%d", &opcao);
+        printf("9. Executa uma instrução (step)\n"); 
+        printf("10. Volta uma instrução (back)\n\n"); 
+        printf("Digite uma opção: "); 
+        scanf("%d", &opcao); 
         getchar();
+           
+        /*printMenu();
+
+        echo();
+        scanw("%d", &opcao);  //buga o menu e nao deixa testar direito (print menu com ncurse)
+        noecho();*/
 
         switch (opcao) {
             case 1:
@@ -128,6 +140,7 @@ int main(){
 
             case 0:
                 //Sair
+                //endwin();
                 free(bReg);
                 free(memoria);
                 free(memDados);

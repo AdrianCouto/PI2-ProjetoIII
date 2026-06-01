@@ -128,12 +128,16 @@ End: 8 bits;
 // ------------------------------ PROTÓTIPOS -------------------------------
 
 // MENU / CONTROLE DO SISTEMA
+void printMenu();
 void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc);
 void imprimeEstatistica(estatInstrucoes estatInst);
 void salvaASM(instrucao *memoria, int linhas);
 void salvaDAT(int *memDados);
 void run(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDados, estatInstrucoes *estatInst);
 void step(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDados, estatInstrucoes *estatInst);
+void carregaID_EX(instrucao *inst, int *bReg, registradoresPipeline *pipe);
+void carregaEX_MEM(registradoresPipeline *pipe, int8_t resultadoULA);
+void carregaMEM_WB(registradoresPipeline *pipe, int8_t dadoMemoria);
 
 // MEMÓRIA
 int contaLinhas(char *arq);
