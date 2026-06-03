@@ -2,15 +2,23 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <unistd.h>
 #include <ncurses.h>
 #include "minimips.h"
 
+
+static void iniciaNcurses(void){
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    curs_set(0);
+}
+
+
+
 int main(){
 
-    /*initscr(); //ainda ta bugando e não deixa o simulador ser executado de foram correta(print menu com ncurse)
-    cbreak();
-    noecho();*/
+    iniciaNcurses();
 
     int pc = 0, opcao, linhas = 0;
 
@@ -28,30 +36,40 @@ int main(){
 
     while (1) {
 
-        printf("\nMenu:\n\n"); 
-        printf("0. Sair do Programa\n"); 
-        printf("1. Carregar Memória de Instruções (.mem)\n"); 
-        printf("2. Carregar Memória de Dados (.dat)\n"); 
-        printf("3. Imprimir memórias (instruções e dados)\n");
-        printf("4. Imprimir Banco de Registradores\n"); 
-        printf("5. Imprimir todo o Simulador\n");
-        printf("6. Salvar .asm\n");
-        printf("7. Salvar .dat\n"); 
-        printf("8. Executa programa (run)\n");
-        printf("9. Executa uma instrução (step)\n"); 
-        printf("10. Volta uma instrução (back)\n\n"); 
-        printf("Digite uma opção: "); 
-        scanf("%d", &opcao); 
-        getchar();
-           
-        /*printMenu();
+        clear();
+        attron(A_BOLD);
+        mvprintw(1, 5, "=============== MiniMIPS Pipeline ===============");
+        attroff(A_BOLD);
 
+        attron(A_BOLD);
+        mvprintw(3, 5,  "0. Sair do Programa");
+        mvprintw(4, 5,  "1. Carregar Memoria de Instrucoes (.mem)");
+        mvprintw(5, 5,  "2. Carregar Memoria de Dados (.dat)");
+        mvprintw(6, 5,  "3. Imprimir memorias (instrucoes e dados)");
+        mvprintw(7, 5,  "4. Imprimir Banco de Registradores");
+        mvprintw(8, 5,  "5. Imprimir todo o Simulador");
+        mvprintw(9, 5,  "6. Salvar .asm");
+        mvprintw(10, 5, "7. Salvar .dat");
+        mvprintw(11, 5, "8. Executa programa (run)");
+        mvprintw(12, 5, "9. Executa uma instrucao (step)");
+        mvprintw(13, 5, "10. Volta uma instrucao (back)");
+        attroff(A_BOLD);
+
+        attron(A_BOLD);
+        mvprintw(15, 5, "Selecione uma das opções acima: ");
         echo();
-        scanw("%d", &opcao);  //buga o menu e nao deixa testar direito (print menu com ncurse)
-        noecho();*/
+        curs_set(1);
+        mvscanw(15, 39, "%d", &opcao);
+        noecho();
+        curs_set(0);
+        
+        mvprintw(18, 5, "=================================================");
+        attroff(A_BOLD);
+
 
         switch (opcao) {
             case 1:
+                endwin();
                 //Carregar Mem de Instr.
                 char arq[20];
                 printf("\nDigite o nome do arquivo da memória de instruções (.mem): ");
@@ -63,9 +81,11 @@ int main(){
                 printf("\n%d Instruções carregadas!\n", linhas);
 
                 lerMem(arq, &memoria, linhas);
+                iniciaNcurses();
                 break;
 
             case 2:
+                endwin();
                 //Carregar Mem de Dados
                 char arqMem[20];
                 printf("\nDigite o nome do arquivo da memória de dados (.dat): ");
@@ -75,72 +95,109 @@ int main(){
 
                 lerMemDados(arqMem, &memDados);
 
+                    iniciaNcurses();
+
                 break;
 
             case 3:
+                endwin();
                 // Imprimir memórias (tanto instruções quando dados)
                 imprimeMemorias(memoria,memDados);
+
+                iniciaNcurses();
 
                 break;
 
             case 4:
+                endwin();
                 //Imprimir Banco de Registradores
                 imprimeBancoRegistradores(bReg);
+
+                iniciaNcurses();
                 break;
             case 5:
-                //Imprimir simulador
-                printf("\nImpressão do simulador:\n");
-                do{
-                    printf("\n1. Banco de Registradores\n2. Memórias (Dados ou Instruções)\n3. Estatísticas das Instruções)\n");
-                    printf("\nSelecione uma das opções acima: ");
-                    scanf("%d", &opcao);
-                    switch(opcao){
-                        case 1:
-                            imprimeBancoRegistradores(bReg);
-                            break;
-                        case 2:
-                            imprimeMemorias(memoria,memDados);
-                            break;
-                        case 3:
-                            imprimeEstatistica(estatInst);
-                            break;
-                        default:
-                            printf("Opção inválida! Por favor selecione uma das opções disponíveis.\n");
-                            break;
-                    }
-                }while(opcao<1 || opcao>3);
+                clear();
+                attron(A_BOLD);
+                mvprintw(1, 5, "Impressao do simulador");
+                mvprintw(2, 5, "========================================");
+                attroff(A_BOLD);
 
+                attron(A_BOLD);
+                mvprintw(3, 5, "1. Banco de Registradores");
+                mvprintw(4, 5, "2. Memorias (Dados ou Instrucoes)");
+                mvprintw(5, 5, "3. Estatisticas das Instrucoes");
+                attroff(A_BOLD);
+
+                attron(A_BOLD);
+                mvprintw(7, 5, "========================================");
+                mvprintw(8, 5, "Selecione uma das opcao acima: ");
+                attroff(A_BOLD);
+                refresh();
+
+                echo();
+                curs_set(1);
+                mvscanw(8, 24, "%d", &opcao);
+                noecho();
+                curs_set(0);
+
+                clear();
+                switch(opcao){
+                    case 1:
+                        endwin();
+                        imprimeBancoRegistradores(bReg);
+                        break;
+                    case 2:
+                        endwin();
+                        imprimeMemorias(memoria, memDados);
+                        break;
+                    case 3:
+                        endwin();
+                        imprimeEstatistica( estatInst);
+                        break;
+                }
+
+                iniciaNcurses();
                 break;
 
             case 6:
+                endwin();
                 // Salvar .asm
                 salvaASM(memoria, linhas);
+                iniciaNcurses();
                 break;
 
             case 7:
+                endwin();
                 // Salvar .dat
                 salvaDAT(memDados);
+                iniciaNcurses();
                 break;
 
             case 8:
+                endwin();
                 //Executar programa (run)
                 run(memoria, bReg, &sinais, &pc, memDados, &estatInst);
+                iniciaNcurses();
                 break;
 
             case 9:
+                endwin();
                 //Executa instrução (step)
                 salvaEstado(&hist, pc, memDados, bReg, &estatInst);
                 step(memoria, bReg, &sinais, &pc, memDados, &estatInst);
+                iniciaNcurses();
                 break;
 
             case 10:
+                endwin();
                 //Voltar instrução (back)
                 voltaInstrucao(&hist, &pc, memDados, bReg, &estatInst);
+                iniciaNcurses();
                 break;
 
             case 0:
                 //Sair
-                //endwin();
+                endwin();
                 free(bReg);
                 free(memoria);
                 free(memDados);
@@ -148,7 +205,11 @@ int main(){
                 return 0;
 
             default:
-                printf("\nOpção inválida!\n");
+                attron(A_BOLD);
+                mvprintw(18, 5, "Opcao invalida! Pressione qualquer tecla.");
+                attroff(A_BOLD);
+                refresh();
+                getch();
                 break;
         }
     }

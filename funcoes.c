@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <unistd.h>
 #include <ncurses.h>
 #include "minimips.h"
@@ -191,15 +190,15 @@ void step(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDado
 void programCounter(int *pc, sinaisUC *sinais, instrucao *instrucao, int zero){
     
     // JUMP
-    if((*sinais).jump == 1){
-        *pc = (*instrucao).addr;
+    if(sinais->jump == 1){
+        *pc = instrucao->addr;
         printf("\nPC atual: %d.\n", *pc);
         return;
     }
 
     // BRANCH 
-    if((*sinais).branch == 1 && zero == 1){
-        *pc = *pc + (*instrucao).imm + 1;
+    if(sinais->branch == 1 && zero == 1){
+        *pc = *pc + instrucao->imm + 1;
         printf("\nPC atual: %d.\n", *pc);
         return;
     }
@@ -211,117 +210,117 @@ void programCounter(int *pc, sinaisUC *sinais, instrucao *instrucao, int zero){
 // Decodificação
 void decodificaInst(instrucao *instrucao){
 
-    (*instrucao).opcode = (*instrucao).instrucao >> 12; // Pega os 4 bits do opcode
+    instrucao->opcode = instrucao->instrucao >> 12; // Pega os 4 bits do opcode
 
-    switch((*instrucao).opcode){
+    switch(instrucao->opcode){
     case 0:
-        (*instrucao).tipoInst = tipoR;
-        (*instrucao).rs = ((*instrucao).instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
-        (*instrucao).rt = ((*instrucao).instrucao >> 6) & 0x7; // pega os 3 bits do rt
-        (*instrucao).rd = ((*instrucao).instrucao >> 3) & 0x7; // pega os 3 bits do rd
-        (*instrucao).funct = ((*instrucao).instrucao) & 0x7;
+        instrucao->tipoInst = tipoR;
+        instrucao->rs = (instrucao->instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
+        instrucao->rt = (instrucao->instrucao >> 6) & 0x7; // pega os 3 bits do rt
+        instrucao->rd = (instrucao->instrucao >> 3) & 0x7; // pega os 3 bits do rd
+        instrucao->funct = (instrucao->instrucao) & 0x7;
         printf("\n[ Tipo R ] \n");
-        printf("opcode: %d\n", (*instrucao).opcode);
-        printf("rs: %d\n", (*instrucao).rs);
-        printf("rt: %d\n", (*instrucao).rt);
-        printf("rd: %d\n", (*instrucao).rd);
-        printf("funct: %d\n", (*instrucao).funct);
+        printf("opcode: %d\n", instrucao->opcode);
+        printf("rs: %d\n", instrucao->rs);
+        printf("rt: %d\n", instrucao->rt);
+        printf("rd: %d\n", instrucao->rd);
+        printf("funct: %d\n", instrucao->funct);
         break;
 
     case 2:
-        (*instrucao).tipoInst = tipoJ;
-        (*instrucao).addr = ((*instrucao).instrucao) &0xFF; // pega os 8 bits do adress
+        instrucao->tipoInst = tipoJ;
+        instrucao->addr = (instrucao->instrucao) &0xFF; // pega os 8 bits do adress
         printf("\n[ Tipo J ]\n");
-        printf("opcode: %d\n", (*instrucao).opcode);
-        printf("address: %d\n", (*instrucao).addr);
+        printf("opcode: %d\n", instrucao->opcode);
+        printf("address: %d\n", instrucao->addr);
         break;
 
     default:
-        (*instrucao).tipoInst = tipoI;
-        (*instrucao).rs = ((*instrucao).instrucao >> 9) &0x7; // pega os 3 bits do rs
-        (*instrucao).rt = ((*instrucao).instrucao >> 6) &0x7; // pega os 3 bits do rt
-        (*instrucao).imm = ((*instrucao).instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
-        (*instrucao).imm = extensorBit((*instrucao).imm);
+        instrucao->tipoInst = tipoI;
+        instrucao->rs = (instrucao->instrucao >> 9) &0x7; // pega os 3 bits do rs
+        instrucao->rt = (instrucao->instrucao >> 6) &0x7; // pega os 3 bits do rt
+        instrucao->imm = (instrucao->instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
+        instrucao->imm = extensorBit(instrucao->imm);
         printf("\n[ Tipo I ] \n");
-        printf("opcode: %d\n", (*instrucao).opcode);
-        printf("rs: %d\n", (*instrucao).rs);
-        printf("rt: %d\n", (*instrucao).rt);
-        printf("imediato: %d\n", (*instrucao).imm);
+        printf("opcode: %d\n", instrucao->opcode);
+        printf("rs: %d\n", instrucao->rs);
+        printf("rt: %d\n", instrucao->rt);
+        printf("imediato: %d\n", instrucao->imm);
     }
 }
 
 //UC
 void unidadeControle(instrucao *instrucao, sinaisUC *sinais){
-    switch((*instrucao).opcode){
+    switch(instrucao->opcode){
         case 0: // opcode = 0000
-            (*sinais).RegDst = 1;
-            (*sinais).EscReg = 1;
-            (*sinais).UlaFonte = 0;
-            (*sinais).ulaOp = (*instrucao).funct;
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 1;
-            (*sinais).jump = 0;
-            (*sinais).branch = 0;
+            sinais->RegDst = 1;
+            sinais->EscReg = 1;
+            sinais->UlaFonte = 0;
+            sinais->ulaOp = instrucao->funct;
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 1;
+            sinais->jump = 0;
+            sinais->branch = 0;
 
             break;
 
         case 2: // opcode = 0010 - J
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 0;
-            (*sinais).UlaFonte = 0;
-            (*sinais).ulaOp = 0;
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 0;
-            (*sinais).jump = 1;
-            (*sinais).branch = 0;
+            sinais->RegDst = 0;
+            sinais->EscReg = 0;
+            sinais->UlaFonte = 0;
+            sinais->ulaOp = 0;
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 0;
+            sinais->jump = 1;
+            sinais->branch = 0;
 
             break;
 
         case 4: // opcode = 0100 - Addi
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 1;
-            (*sinais).UlaFonte = 1;
-            (*sinais).ulaOp = 0;
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 1;
-            (*sinais).jump = 0;
-            (*sinais).branch = 0;
+            sinais->RegDst = 0;
+            sinais->EscReg = 1;
+            sinais->UlaFonte = 1;
+            sinais->ulaOp = 0;
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 1;
+            sinais->jump = 0;
+            sinais->branch = 0;
 
             break;
 
         case 8: // opcode = 1000 - BEQ 
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 0;
-            (*sinais).UlaFonte = 0;
-            (*sinais).ulaOp = 2; // SUB
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 0;
-            (*sinais).jump = 0;
-            (*sinais).branch = 1;
+            sinais->RegDst = 0;
+            sinais->EscReg = 0;
+            sinais->UlaFonte = 0;
+            sinais->ulaOp = 2; // SUB
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 0;
+            sinais->jump = 0;
+            sinais->branch = 1;
 
             break;
 
         case 11: // opcode = 1011 - lw // add
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 1;
-            (*sinais).UlaFonte = 1;
-            (*sinais).ulaOp = 0; // add
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 0;
-            (*sinais).jump = 0;
-            (*sinais).branch = 0;
+            sinais->RegDst = 0;
+            sinais->EscReg = 1;
+            sinais->UlaFonte = 1;
+            sinais->ulaOp = 0; // add
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 0;
+            sinais->jump = 0;
+            sinais->branch = 0;
             
             break;
 
         case 15: // opcode = 1111 - sw
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 0;
-            (*sinais).UlaFonte = 1;
-            (*sinais).ulaOp = 0; // add
-            (*sinais).EscMem = 1;
-            (*sinais).MemParaReg = 0;
-            (*sinais).jump = 0;
-            (*sinais).branch = 0;
+            sinais->RegDst = 0;
+            sinais->EscReg = 0;
+            sinais->UlaFonte = 1;
+            sinais->ulaOp = 0; // add
+            sinais->EscMem = 1;
+            sinais->MemParaReg = 0;
+            sinais->jump = 0;
+            sinais->branch = 0;
 
             break;
     }
@@ -503,40 +502,40 @@ int8_t retornaMemoria(int *memDados, uint8_t enderecoULA) {
 int executaInstrucao(instrucao* instrucao, sinaisUC *sinais, int *bReg, int *memDados){
     int8_t  operador1, operador2, UlaResultado=0, regDst, dadoFinal=0, valorSW;
     int zero=0, overflow = 0;
-    lerRegistradores(bReg, (*instrucao).rs, (*instrucao).rt, &operador1, &operador2);
+    lerRegistradores(bReg, instrucao->rs, instrucao->rt, &operador1, &operador2);
     
     valorSW = operador2;
     
-    if((*sinais).UlaFonte==1){
-        operador2=(*instrucao).imm; 
+    if(sinais->UlaFonte==1){
+        operador2=instrucao->imm; 
     }
 
-    UlaResultado = ULA(operador1, operador2, (*sinais).ulaOp, &zero, &overflow);
+    UlaResultado = ULA(operador1, operador2, sinais->ulaOp, &zero, &overflow);
 
-    if((*sinais).EscMem==1){
+    if(sinais->EscMem==1){
         escreveMemDados(memDados, (int)UlaResultado, valorSW);
         printf("\nSW: Valor %d guardado no endereço %d\n", valorSW, UlaResultado);
     }
 
-    if((*sinais).MemParaReg==1){
+    if(sinais->MemParaReg==1){
         dadoFinal = UlaResultado;
-    }else if((*sinais).EscReg==1){
+    }else if(sinais->EscReg==1){
         dadoFinal = retornaMemoria(memDados, (uint8_t)UlaResultado);
         printf("\nLW: Valor %d lido do endereço %d\n", dadoFinal, UlaResultado);
     }
     
-    if((*sinais).RegDst==1){
-        regDst = (*instrucao).rd;
+    if(sinais->RegDst==1){
+        regDst = instrucao->rd;
     }else{
-        regDst = (*instrucao).rt;
+        regDst = instrucao->rt;
     }
 
-    if((*sinais).EscReg==1){
-        escreveRegistrador(bReg, regDst, dadoFinal, (*sinais).EscReg);
+    if(sinais->EscReg==1){
+        escreveRegistrador(bReg, regDst, dadoFinal, sinais->EscReg);
         printf("\nRegistrador a ser escrito: $%d com o valor %d\n", regDst, dadoFinal);
     }
 
-    if((*sinais).branch==1 && zero == 1){ 
+    if(sinais->branch==1 && zero == 1){ 
         printf("\nPulo condicional detectado\n");
     }
     return zero;
@@ -846,48 +845,27 @@ void imprimeInstrucao(instrucao *memoria, int pc) {
 
 void decodifica(instrucao *instrucao){
 
-    (*instrucao).opcode = (*instrucao).instrucao >> 12; // Pega os 4 bits do opcode
+    instrucao->opcode = instrucao->instrucao >> 12; // Pega os 4 bits do opcode
 
-    switch((*instrucao).opcode){
+    switch(instrucao->opcode){
     case 0:
-        (*instrucao).tipoInst = tipoR;
-        (*instrucao).rs = ((*instrucao).instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
-        (*instrucao).rt = ((*instrucao).instrucao >> 6) & 0x7; // pega os 3 bits do rt
-        (*instrucao).rd = ((*instrucao).instrucao >> 3) & 0x7; // pega os 3 bits do rd
-        (*instrucao).funct = ((*instrucao).instrucao) & 0x7;
+        instrucao->tipoInst = tipoR;
+        instrucao->rs = (instrucao->instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
+        instrucao->rt = (instrucao->instrucao >> 6) & 0x7; // pega os 3 bits do rt
+        instrucao->rd = (instrucao->instrucao >> 3) & 0x7; // pega os 3 bits do rd
+        instrucao->funct = (instrucao->instrucao) & 0x7;
         break;
 
     case 2:
-        (*instrucao).tipoInst = tipoJ;
-        (*instrucao).addr = ((*instrucao).instrucao) &0xFF; // pega os 8 bits do adress
+        instrucao->tipoInst = tipoJ;
+        instrucao->addr = (instrucao->instrucao) &0xFF; // pega os 8 bits do adress
         break;
 
     default:
-        (*instrucao).tipoInst = tipoI;
-        (*instrucao).rs = ((*instrucao).instrucao >> 9) &0x7; // pega os 3 bits do rs
-        (*instrucao).rt = ((*instrucao).instrucao >> 6) &0x7; // pega os 3 bits do rt
-        (*instrucao).imm = ((*instrucao).instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
-        (*instrucao).imm = extensorBit((*instrucao).imm);
+        instrucao->tipoInst = tipoI;
+        instrucao->rs = (instrucao->instrucao >> 9) &0x7; // pega os 3 bits do rs
+        instrucao->rt = (instrucao->instrucao >> 6) &0x7; // pega os 3 bits do rt
+        instrucao->imm = (instrucao->instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
+        instrucao->imm = extensorBit(instrucao->imm);
     }
-}
-
-//---------------------------------------------------FUNÇÕES NCURSE--------------------------------------------------------------//
-
-void printMenu(){
-
-    mvprintw(1, 25, "MINIMIPS");
-    mvprintw(3, 5,  "0. Sair do Programa");
-    mvprintw(4, 5,  "1. Carregar Memoria de Instrucoes (.mem)");
-    mvprintw(5, 5,  "2. Carregar Memoria de Dados (.dat)");
-    mvprintw(6, 5,  "3. Imprimir memorias");
-    mvprintw(7, 5,  "4. Imprimir Banco de Registradores");
-    mvprintw(8, 5,  "5. Imprimir todo o Simulador");
-    mvprintw(9, 5,  "6. Salvar .asm");
-    mvprintw(10, 5, "7. Salvar .dat");
-    mvprintw(11, 5, "8. Executa programa (run)");
-    mvprintw(12, 5, "9. Executa uma instrucao (step)");
-    mvprintw(13, 5, "10. Volta uma instrucao (back)");
-    mvprintw(15, 5, "Digite uma opcao: ");
-
-    refresh();
 }
