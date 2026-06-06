@@ -13,10 +13,7 @@ int main(){
     noecho();*/
 
     int pc = 0, opcao, linhas = 0;
-
     estatInstrucoes estatInst = {0};
-
-    sinaisUC sinais;
 
     instrucao *memoria = NULL;
 
@@ -26,24 +23,27 @@ int main(){
     int *bReg = inicializaBReg();
     int *memDados = inicializaMemDados();
 
+    registradoresPipeline pipe;
+    inicializa_pipeline(&pipe);
+
     while (1) {
 
-        printf("\nMenu:\n\n"); 
-        printf("0. Sair do Programa\n"); 
-        printf("1. Carregar Memória de Instruções (.mem)\n"); 
-        printf("2. Carregar Memória de Dados (.dat)\n"); 
+        printf("\nMenu:\n\n");
+        printf("0. Sair do Programa\n");
+        printf("1. Carregar Memória de Instruções (.mem)\n");
+        printf("2. Carregar Memória de Dados (.dat)\n");
         printf("3. Imprimir memórias (instruções e dados)\n");
-        printf("4. Imprimir Banco de Registradores\n"); 
+        printf("4. Imprimir Banco de Registradores\n");
         printf("5. Imprimir todo o Simulador\n");
         printf("6. Salvar .asm\n");
-        printf("7. Salvar .dat\n"); 
+        printf("7. Salvar .dat\n");
         printf("8. Executa programa (run)\n");
-        printf("9. Executa uma instrução (step)\n"); 
-        printf("10. Volta uma instrução (back)\n\n"); 
-        printf("Digite uma opção: "); 
-        scanf("%d", &opcao); 
+        printf("9. Executa uma instrução (step)\n");
+        printf("10. Volta uma instrução (back)\n\n");
+        printf("Digite uma opção: ");
+        scanf("%d", &opcao);
         getchar();
-           
+
         /*printMenu();
 
         echo();
@@ -124,13 +124,13 @@ int main(){
 
             case 8:
                 //Executar programa (run)
-                run(memoria, bReg, &sinais, &pc, memDados, &estatInst);
+                run_pipeline(memoria, bReg, &pc, memDados, &pipe, &estatInst);
                 break;
 
             case 9:
                 //Executa instrução (step)
                 salvaEstado(&hist, pc, memDados, bReg, &estatInst);
-                step(memoria, bReg, &sinais, &pc, memDados, &estatInst);
+                step_pipeline(memoria, bReg, &pc, memDados, &pipe, &estatInst);
                 break;
 
             case 10:
