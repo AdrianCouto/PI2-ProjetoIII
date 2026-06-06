@@ -117,29 +117,30 @@ int main(){
                 break;
             case 5:
                 clear();
-                attron(A_BOLD);
-                mvprintw(1, 5, "Impressao do simulador");
-                mvprintw(2, 5, "========================================");
-                attroff(A_BOLD);
+                do{
 
-                attron(A_BOLD);
-                mvprintw(3, 5, "1. Banco de Registradores");
-                mvprintw(4, 5, "2. Memorias (Dados ou Instrucoes)");
-                mvprintw(5, 5, "3. Estatisticas das Instrucoes");
-                attroff(A_BOLD);
+                    attron(A_BOLD);
+                    mvprintw(1, 5, "======= Impressao do simulador =======");
+                    attroff(A_BOLD);
 
+                    attron(A_BOLD);
+                    mvprintw(3, 5, "1. Banco de Registradores");
+                    mvprintw(4, 5, "2. Memorias (Dados ou Instrucoes)");
+                    mvprintw(5, 5, "3. Estatisticas das Instrucoes");
+                attroff(A_BOLD);
+                
                 attron(A_BOLD);
-                mvprintw(7, 5, "========================================");
-                mvprintw(8, 5, "Selecione uma das opcao acima: ");
+                mvprintw(7, 5, "Selecione uma das opções acima: ");
                 attroff(A_BOLD);
                 refresh();
 
                 echo();
                 curs_set(1);
-                mvscanw(8, 24, "%d", &opcao);
+                mvscanw(7, 36, "%d", &opcao);
                 noecho();
                 curs_set(0);
-
+                mvprintw(6, 5, "========================================");
+                
                 clear();
                 switch(opcao){
                     case 1:
@@ -154,8 +155,12 @@ int main(){
                         endwin();
                         imprimeEstatistica( estatInst);
                         break;
+                    default:
+                        mvprintw(9, 5, "Opção inválida! Por favor, selecione uma das opções disponíveis.");
+                        refresh();
                 }
-
+            }while(opcao<1 || opcao>3);
+                
                 iniciaNcurses();
                 break;
 
