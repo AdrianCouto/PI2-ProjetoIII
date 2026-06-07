@@ -57,6 +57,8 @@ typedef struct {
 typedef struct{
     int pc;
     uint16_t instrucao;
+    int valido;
+    instrucao inst;
 }IF_ID;
 
 typedef struct{
@@ -69,6 +71,7 @@ typedef struct{
     uint8_t rd;
     uint8_t funct;
     int8_t imm;
+    int valido;
 }ID_EX;
 
 typedef struct{
@@ -77,6 +80,7 @@ typedef struct{
     int8_t ulaSaida;
     int8_t B; // Valor escrito na memória em um store (RT)
     uint8_t rd;
+    int valido;
 }EX_MEM;
 
 typedef struct{
@@ -85,13 +89,14 @@ typedef struct{
     int8_t mem;
     int8_t ulaSaida;
     uint8_t rd;
+    int valido;
 }MEM_WB;
 
 typedef struct{
-    IF_ID regIF_ID;
-    ID_EX regID_EX;
-    EX_MEM regEX_MEM;
-    MEM_WB regMEM_WB;
+    IF_ID regIF_ID_atual, regIF_ID_novo;
+    ID_EX regID_EX_atual, regID_EX_novo;
+    EX_MEM regEX_MEM_atual, regEX_MEM_novo;
+    MEM_WB regMEM_WB_atual, regMEM_WB_novo;
 }registradoresPipeline;
 
 typedef struct {
@@ -133,11 +138,13 @@ void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc);
 void imprimeEstatistica(estatInstrucoes estatInst);
 void salvaASM(instrucao *memoria, int linhas);
 void salvaDAT(int *memDados);
-void run(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDados, estatInstrucoes *estatInst);
-void step(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDados, estatInstrucoes *estatInst);
+void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
+void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
+/*
 void carregaID_EX(instrucao *inst, int *bReg, registradoresPipeline *pipe);
 void carregaEX_MEM(registradoresPipeline *pipe, int8_t resultadoULA);
 void carregaMEM_WB(registradoresPipeline *pipe, int8_t dadoMemoria);
+*/
 
 // MEMÓRIA
 int contaLinhas(char *arq);
@@ -168,7 +175,8 @@ void imprimeBancoRegistradores(int *reg);
 // EXECUÇÃO
 int executaInstrucao(instrucao *instrucao, sinaisUC *sinais, int *bReg, int *memDados);
 int8_t extensorBit(int8_t imm);
-
+void atualiza_regs_pipeline(registradoresPipeline *pipe);
+void print_pipeline_state(registradoresPipeline *pipe, int ciclo);
 
 // ULA (UNIDADE LÓGICA E ARITMÉTICA)
 int8_t ULA(int op1, int op2, int ulaOp, int *zero, int *overflow);
@@ -182,3 +190,12 @@ int8_t retornaMemoria(int *memDados, uint8_t enderecoULA);
 // HISTÓRICO
 void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstrucoes *estatInst);
 void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatInstrucoes *estatInst);
+
+// ESTÁGIOS
+void do_IF(IF_ID *out, instrucao *memoria, int *pc);
+void do_ID(ID_EX *out, IF_ID *in, int *bReg);
+void do_EX(ID_EX *in, EX_MEM *out);
+void do_MEM(EX_MEM *in, MEM_WB *out, int *memDados);
+void do_WB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst);
+void atualiza_regs_pipeline(registradoresPipeline *pipe);
+void inicializa_pipeline(registradoresPipeline *pipe);

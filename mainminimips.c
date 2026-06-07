@@ -30,10 +30,7 @@ int main(){
     iniciaNcurses();
 
     int pc = 0, opcao, linhas = 0;
-
     estatInstrucoes estatInst = {0};
-
-    sinaisUC sinais;
 
     instrucao *memoria = NULL;
 
@@ -42,6 +39,9 @@ int main(){
 
     int *bReg = inicializaBReg();
     int *memDados = inicializaMemDados();
+
+    registradoresPipeline pipe;
+    inicializa_pipeline(&pipe);
 
     while (1) {
 
@@ -189,7 +189,7 @@ int main(){
             case 8:
                 endwin();
                 //Executar programa (run)
-                run(memoria, bReg, &sinais, &pc, memDados, &estatInst);
+                run_pipeline(memoria, bReg, &pc, memDados, &pipe, &estatInst);
                 iniciaNcurses();
                 break;
 
@@ -197,7 +197,7 @@ int main(){
                 endwin();
                 //Executa instrução (step)
                 salvaEstado(&hist, pc, memDados, bReg, &estatInst);
-                step(memoria, bReg, &sinais, &pc, memDados, &estatInst);
+                step_pipeline(memoria, bReg, &pc, memDados, &pipe, &estatInst);
                 iniciaNcurses();
                 break;
 
@@ -218,9 +218,10 @@ int main(){
                 return 0;
 
             default:
-                attron(A_BOLD);
+                attron(COLOR_PAIR(4) | A_BOLD);
                 mvprintw(18, 5, "Opcao invalida! Pressione qualquer tecla.");
-                attroff(A_BOLD);
+                attroff(COLOR_PAIR(4) | A_BOLD);
+                
                 refresh();
                 getch();
                 break;
