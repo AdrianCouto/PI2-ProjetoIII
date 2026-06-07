@@ -936,27 +936,6 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
     printf("============================\n\n");
 }
 
-//---------------------------------------------------FUNÇÕES NCURSE--------------------------------------------------------------//
-
-void printMenu(){
-
-    mvprintw(1, 25, "MINIMIPS");
-    mvprintw(3, 5,  "0. Sair do Programa");
-    mvprintw(4, 5,  "1. Carregar Memoria de Instrucoes (.mem)");
-    mvprintw(5, 5,  "2. Carregar Memoria de Dados (.dat)");
-    mvprintw(6, 5,  "3. Imprimir memorias");
-    mvprintw(7, 5,  "4. Imprimir Banco de Registradores");
-    mvprintw(8, 5,  "5. Imprimir todo o Simulador");
-    mvprintw(9, 5,  "6. Salvar .asm");
-    mvprintw(10, 5, "7. Salvar .dat");
-    mvprintw(11, 5, "8. Executa programa (run)");
-    mvprintw(12, 5, "9. Executa uma instrucao (step)");
-    mvprintw(13, 5, "10. Volta uma instrucao (back)");
-    mvprintw(15, 5, "Digite uma opcao: ");
-
-    refresh();
-}
-
 
 /*
 void step(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDados, estatInstrucoes *estatInst){
