@@ -8,6 +8,15 @@
 
 static void iniciaNcurses(void){
     initscr();
+
+    start_color();
+    use_default_colors();
+
+    init_pair(1, COLOR_CYAN, -1);
+    init_pair(2, COLOR_YELLOW, -1);
+    init_pair(3, COLOR_GREEN, -1);
+    init_pair(4, COLOR_RED, -1);
+
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
@@ -95,7 +104,7 @@ int main(){
 
                 lerMemDados(arqMem, &memDados);
 
-                    iniciaNcurses();
+                iniciaNcurses();
 
                 break;
 
@@ -136,7 +145,7 @@ int main(){
 
                 echo();
                 curs_set(1);
-                mvscanw(7, 36, "%d", &opcao);
+                mvscanw(7, 39, "%d", &opcao);
                 noecho();
                 curs_set(0);
                 mvprintw(6, 5, "========================================");
@@ -152,7 +161,6 @@ int main(){
                         imprimeMemorias(memoria, memDados);
                         break;
                     case 3:
-                        endwin();
                         imprimeEstatistica( estatInst);
                         break;
                     default:

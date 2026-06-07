@@ -719,36 +719,51 @@ void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc){
 
 
 void imprimeEstatistica(estatInstrucoes estatInst){
-    printf("\n========================================\n");
-    printf("      Estatísticas do Simulador:\n");
-    printf("========================================\n");
-    
-    printf("\nTotal executadas: %d\n", estatInst.total);
-    printf("Ciclos: %d\n", estatInst.ciclos);
-
     estatInst.CPI = 0;
-    if(estatInst.total>0){
-        estatInst.CPI = (float)estatInst.ciclos/(float)estatInst.total;
+    if(estatInst.total > 0){
+        estatInst.CPI = (float)estatInst.ciclos / (float)estatInst.total;
     }
+
+    clear();
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvprintw(1, 5, "+------------------------------------------------+");
+    mvprintw(2, 5, "|           ESTATISTICAS DO PIPELINE             |");
+    mvprintw(3, 5, "+------------------------------------------------+");
+    attroff(COLOR_PAIR(1) | A_BOLD);
+
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvprintw(5, 5, "[ Métricas Globais ]");
+    attroff(COLOR_PAIR(2) | A_BOLD);
+
+    mvprintw(7, 5, "Total executadas: %4d", estatInst.total);
+    mvprintw(8, 5, "Ciclos: %4d", estatInst.ciclos);
+    mvprintw(9, 5, "CPI (Ciclos por Instrucao): %4.2f", estatInst.CPI);
+    mvprintw(10, 5, "Stalls: %4d", estatInst.stalls);
+
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvprintw(12, 5, "[ Divisao por Tipo ]");
+    attroff(COLOR_PAIR(2) | A_BOLD);
+
+    mvprintw(14, 5, "Tipo R: %3d | Tipo I: %3d | Tipo J: %3d", estatInst.tipoR, estatInst.tipoI, estatInst.tipoJ);
+
+
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvprintw(16, 5, "[ Detalhamento das Instrucoes ]");
+    attroff(COLOR_PAIR(2) | A_BOLD);    
+
+    mvprintw(18, 5, "ADD: %3d | SUB: %3d | AND: %3d | OR: %3d", estatInst.add, estatInst.sub, estatInst.and, estatInst.or);
+    mvprintw(19, 5, "ADDI: %3d | BEQ: %3d | LW: %3d | SW: %3d", estatInst.addi, estatInst.beq, estatInst.lw, estatInst.sw);
+    mvprintw(20, 5, "J: %3d", estatInst.j);
+
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvprintw(22, 5, "+------------------------------------------------+");
+    mvprintw(23, 5, "|                [ Voltar ]                      |");
+    mvprintw(24, 5, "+------------------------------------------------+");
+    attroff(COLOR_PAIR(1) | A_BOLD);
+
+    refresh();
     
-    printf("CPI (Ciclos por Instrução): %.2f\n", estatInst.CPI);
-    printf("Stalls: %d\n", estatInst.stalls);
-    
-    printf("\nEstatísticas de instruções\n");
-    printf("\nPor tipo:\n");
-    printf("Tipo R: %d\n", estatInst.tipoR);
-    printf("Tipo I: %d\n", estatInst.tipoI);
-    printf("Tipo J: %d\n", estatInst.tipoJ);
-
-    printf("\nDetalhamento por instrução:\n");
-    printf("R -> add: %d | sub: %d | and: %d | or: %d\n",
-           estatInst.add, estatInst.sub, estatInst.and, estatInst.or);
-    printf("I -> addi: %d | beq: %d | lw: %d | sw: %d\n",
-           estatInst.addi, estatInst.beq, estatInst.lw, estatInst.sw);
-    printf("J -> j: %d\n", estatInst.j);
-
-
-    printf("========================================\n\n");
+    getch();
 }
 
 void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstrucoes *estatInst){
