@@ -735,6 +735,32 @@ void imprimeEstatistica(estatInstrucoes estatInst){
         estatInst.CPI = (float)estatInst.ciclos / (float)estatInst.total;
     }
 
+    printf("\n========================================\n");
+    printf("      Estatísticas do Simulador:\n");
+    printf("========================================\n");
+
+    printf("\nTotal executadas: %d\n", estatInst.total);
+    printf("Ciclos: %d\n", estatInst.ciclos);
+
+    printf("CPI (Ciclos por Instrução): %.2f\n", estatInst.CPI);
+    printf("Stalls: %d\n", estatInst.stalls);
+
+    printf("\nEstatísticas de instruções\n");
+    printf("\nPor tipo:\n");
+    printf("Tipo R: %d\n", estatInst.tipoR);
+    printf("Tipo I: %d\n", estatInst.tipoI);
+    printf("Tipo J: %d\n", estatInst.tipoJ);
+
+    printf("\nDetalhamento por instrução:\n");
+    printf("R -> add: %d | sub: %d | and: %d | or: %d\n",
+           estatInst.add, estatInst.sub, estatInst.and, estatInst.or);
+    printf("I -> addi: %d | beq: %d | lw: %d | sw: %d\n",
+           estatInst.addi, estatInst.beq, estatInst.lw, estatInst.sw);
+    printf("J -> j: %d\n", estatInst.j);
+
+
+    printf("========================================\n\n");
+
     /*  NCurse
     clear();
     attron(COLOR_PAIR(1) | A_BOLD);
@@ -777,31 +803,7 @@ void imprimeEstatistica(estatInstrucoes estatInst){
     
     getch();*/
 
-    printf("\n========================================\n");
-    printf("      Estatísticas do Simulador:\n");
-    printf("========================================\n");
 
-    printf("\nTotal executadas: %d\n", estatInst.total);
-    printf("Ciclos: %d\n", estatInst.ciclos);
-
-    printf("CPI (Ciclos por Instrução): %.2f\n", estatInst.CPI);
-    printf("Stalls: %d\n", estatInst.stalls);
-
-    printf("\nEstatísticas de instruções\n");
-    printf("\nPor tipo:\n");
-    printf("Tipo R: %d\n", estatInst.tipoR);
-    printf("Tipo I: %d\n", estatInst.tipoI);
-    printf("Tipo J: %d\n", estatInst.tipoJ);
-
-    printf("\nDetalhamento por instrução:\n");
-    printf("R -> add: %d | sub: %d | and: %d | or: %d\n",
-           estatInst.add, estatInst.sub, estatInst.and, estatInst.or);
-    printf("I -> addi: %d | beq: %d | lw: %d | sw: %d\n",
-           estatInst.addi, estatInst.beq, estatInst.lw, estatInst.sw);
-    printf("J -> j: %d\n", estatInst.j);
-
-
-    printf("========================================\n\n");
 }
 
 void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstrucoes *estatInst){
