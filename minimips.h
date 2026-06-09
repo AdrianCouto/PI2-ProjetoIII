@@ -133,7 +133,6 @@ End: 8 bits;
 // ------------------------------ PROTÓTIPOS -------------------------------
 
 // MENU / CONTROLE DO SISTEMA
-void printMenu();
 void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc);
 void imprimeEstatistica(estatInstrucoes estatInst);
 void salvaASM(instrucao *memoria, int linhas);

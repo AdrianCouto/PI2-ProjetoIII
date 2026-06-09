@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <unistd.h>
 #include <ncurses.h>
 #include "minimips.h"
@@ -186,15 +185,15 @@ void atualiza_regs_pipeline(registradoresPipeline *pipe) {
 void programCounter(int *pc, sinaisUC *sinais, instrucao *instrucao, int zero){
 
     // JUMP
-    if((*sinais).jump == 1){
-        *pc = (*instrucao).addr;
+    if(sinais->jump == 1){
+        *pc = instrucao->addr;
         printf("\nPC atual: %d.\n", *pc);
         return;
     }
 
-    // BRANCH
-    if((*sinais).branch == 1 && zero == 1){
-        *pc = *pc + (*instrucao).imm + 1;
+    // BRANCH 
+    if(sinais->branch == 1 && zero == 1){
+        *pc = *pc + instrucao->imm + 1;
         printf("\nPC atual: %d.\n", *pc);
         return;
     }
@@ -206,117 +205,117 @@ void programCounter(int *pc, sinaisUC *sinais, instrucao *instrucao, int zero){
 // Decodificação
 void decodificaInst(instrucao *instrucao){
 
-    (*instrucao).opcode = (*instrucao).instrucao >> 12; // Pega os 4 bits do opcode
+    instrucao->opcode = instrucao->instrucao >> 12; // Pega os 4 bits do opcode
 
-    switch((*instrucao).opcode){
+    switch(instrucao->opcode){
     case 0:
-        (*instrucao).tipoInst = tipoR;
-        (*instrucao).rs = ((*instrucao).instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
-        (*instrucao).rt = ((*instrucao).instrucao >> 6) & 0x7; // pega os 3 bits do rt
-        (*instrucao).rd = ((*instrucao).instrucao >> 3) & 0x7; // pega os 3 bits do rd
-        (*instrucao).funct = ((*instrucao).instrucao) & 0x7;
+        instrucao->tipoInst = tipoR;
+        instrucao->rs = (instrucao->instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
+        instrucao->rt = (instrucao->instrucao >> 6) & 0x7; // pega os 3 bits do rt
+        instrucao->rd = (instrucao->instrucao >> 3) & 0x7; // pega os 3 bits do rd
+        instrucao->funct = (instrucao->instrucao) & 0x7;
         printf("\n[ Tipo R ] \n");
-        printf("opcode: %d\n", (*instrucao).opcode);
-        printf("rs: %d\n", (*instrucao).rs);
-        printf("rt: %d\n", (*instrucao).rt);
-        printf("rd: %d\n", (*instrucao).rd);
-        printf("funct: %d\n", (*instrucao).funct);
+        printf("opcode: %d\n", instrucao->opcode);
+        printf("rs: %d\n", instrucao->rs);
+        printf("rt: %d\n", instrucao->rt);
+        printf("rd: %d\n", instrucao->rd);
+        printf("funct: %d\n", instrucao->funct);
         break;
 
     case 2:
-        (*instrucao).tipoInst = tipoJ;
-        (*instrucao).addr = ((*instrucao).instrucao) &0xFF; // pega os 8 bits do adress
+        instrucao->tipoInst = tipoJ;
+        instrucao->addr = (instrucao->instrucao) &0xFF; // pega os 8 bits do adress
         printf("\n[ Tipo J ]\n");
-        printf("opcode: %d\n", (*instrucao).opcode);
-        printf("address: %d\n", (*instrucao).addr);
+        printf("opcode: %d\n", instrucao->opcode);
+        printf("address: %d\n", instrucao->addr);
         break;
 
     default:
-        (*instrucao).tipoInst = tipoI;
-        (*instrucao).rs = ((*instrucao).instrucao >> 9) &0x7; // pega os 3 bits do rs
-        (*instrucao).rt = ((*instrucao).instrucao >> 6) &0x7; // pega os 3 bits do rt
-        (*instrucao).imm = ((*instrucao).instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
-        (*instrucao).imm = extensorBit((*instrucao).imm);
+        instrucao->tipoInst = tipoI;
+        instrucao->rs = (instrucao->instrucao >> 9) &0x7; // pega os 3 bits do rs
+        instrucao->rt = (instrucao->instrucao >> 6) &0x7; // pega os 3 bits do rt
+        instrucao->imm = (instrucao->instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
+        instrucao->imm = extensorBit(instrucao->imm);
         printf("\n[ Tipo I ] \n");
-        printf("opcode: %d\n", (*instrucao).opcode);
-        printf("rs: %d\n", (*instrucao).rs);
-        printf("rt: %d\n", (*instrucao).rt);
-        printf("imediato: %d\n", (*instrucao).imm);
+        printf("opcode: %d\n", instrucao->opcode);
+        printf("rs: %d\n", instrucao->rs);
+        printf("rt: %d\n", instrucao->rt);
+        printf("imediato: %d\n", instrucao->imm);
     }
 }
 
 //UC
 void unidadeControle(instrucao *instrucao, sinaisUC *sinais){
-    switch((*instrucao).opcode){
+    switch(instrucao->opcode){
         case 0: // opcode = 0000
-            (*sinais).RegDst = 1;
-            (*sinais).EscReg = 1;
-            (*sinais).UlaFonte = 0;
-            (*sinais).ulaOp = (*instrucao).funct;
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 1;
-            (*sinais).jump = 0;
-            (*sinais).branch = 0;
+            sinais->RegDst = 1;
+            sinais->EscReg = 1;
+            sinais->UlaFonte = 0;
+            sinais->ulaOp = instrucao->funct;
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 1;
+            sinais->jump = 0;
+            sinais->branch = 0;
 
             break;
 
         case 2: // opcode = 0010 - J
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 0;
-            (*sinais).UlaFonte = 0;
-            (*sinais).ulaOp = 0;
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 0;
-            (*sinais).jump = 1;
-            (*sinais).branch = 0;
+            sinais->RegDst = 0;
+            sinais->EscReg = 0;
+            sinais->UlaFonte = 0;
+            sinais->ulaOp = 0;
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 0;
+            sinais->jump = 1;
+            sinais->branch = 0;
 
             break;
 
         case 4: // opcode = 0100 - Addi
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 1;
-            (*sinais).UlaFonte = 1;
-            (*sinais).ulaOp = 0;
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 1;
-            (*sinais).jump = 0;
-            (*sinais).branch = 0;
+            sinais->RegDst = 0;
+            sinais->EscReg = 1;
+            sinais->UlaFonte = 1;
+            sinais->ulaOp = 0;
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 1;
+            sinais->jump = 0;
+            sinais->branch = 0;
 
             break;
 
-        case 8: // opcode = 1000 - BEQ
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 0;
-            (*sinais).UlaFonte = 0;
-            (*sinais).ulaOp = 2; // SUB
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 0;
-            (*sinais).jump = 0;
-            (*sinais).branch = 1;
+        case 8: // opcode = 1000 - BEQ 
+            sinais->RegDst = 0;
+            sinais->EscReg = 0;
+            sinais->UlaFonte = 0;
+            sinais->ulaOp = 2; // SUB
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 0;
+            sinais->jump = 0;
+            sinais->branch = 1;
 
             break;
 
         case 11: // opcode = 1011 - lw // add
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 1;
-            (*sinais).UlaFonte = 1;
-            (*sinais).ulaOp = 0; // add
-            (*sinais).EscMem = 0;
-            (*sinais).MemParaReg = 0;
-            (*sinais).jump = 0;
-            (*sinais).branch = 0;
-
+            sinais->RegDst = 0;
+            sinais->EscReg = 1;
+            sinais->UlaFonte = 1;
+            sinais->ulaOp = 0; // add
+            sinais->EscMem = 0;
+            sinais->MemParaReg = 0;
+            sinais->jump = 0;
+            sinais->branch = 0;
+            
             break;
 
         case 15: // opcode = 1111 - sw
-            (*sinais).RegDst = 0;
-            (*sinais).EscReg = 0;
-            (*sinais).UlaFonte = 1;
-            (*sinais).ulaOp = 0; // add
-            (*sinais).EscMem = 1;
-            (*sinais).MemParaReg = 0;
-            (*sinais).jump = 0;
-            (*sinais).branch = 0;
+            sinais->RegDst = 0;
+            sinais->EscReg = 0;
+            sinais->UlaFonte = 1;
+            sinais->ulaOp = 0; // add
+            sinais->EscMem = 1;
+            sinais->MemParaReg = 0;
+            sinais->jump = 0;
+            sinais->branch = 0;
 
             break;
     }
@@ -731,17 +730,17 @@ void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc){
 
 
 void imprimeEstatistica(estatInstrucoes estatInst){
+    estatInst.CPI = 0;
+    if(estatInst.total > 0){
+        estatInst.CPI = (float)estatInst.ciclos / (float)estatInst.total;
+    }
+
     printf("\n========================================\n");
     printf("      Estatísticas do Simulador:\n");
     printf("========================================\n");
 
     printf("\nTotal executadas: %d\n", estatInst.total);
     printf("Ciclos: %d\n", estatInst.ciclos);
-
-    estatInst.CPI = 0;
-    if(estatInst.total>0){
-        estatInst.CPI = (float)estatInst.ciclos/(float)estatInst.total;
-    }
 
     printf("CPI (Ciclos por Instrução): %.2f\n", estatInst.CPI);
     printf("Stalls: %d\n", estatInst.stalls);
@@ -761,6 +760,50 @@ void imprimeEstatistica(estatInstrucoes estatInst){
 
 
     printf("========================================\n\n");
+
+    /*  NCurse
+    clear();
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvprintw(1, 5, "+------------------------------------------------+");
+    mvprintw(2, 5, "|           ESTATISTICAS DO PIPELINE             |");
+    mvprintw(3, 5, "+------------------------------------------------+");
+    attroff(COLOR_PAIR(1) | A_BOLD);
+
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvprintw(5, 5, "[ Métricas Globais ]");
+    attroff(COLOR_PAIR(2) | A_BOLD);
+
+    mvprintw(7, 5, "Total executadas: %4d", estatInst.total);
+    mvprintw(8, 5, "Ciclos: %4d", estatInst.ciclos);
+    mvprintw(9, 5, "CPI (Ciclos por Instrucao): %4.2f", estatInst.CPI);
+    mvprintw(10, 5, "Stalls: %4d", estatInst.stalls);
+
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvprintw(12, 5, "[ Divisao por Tipo ]");
+    attroff(COLOR_PAIR(2) | A_BOLD);
+
+    mvprintw(14, 5, "Tipo R: %3d | Tipo I: %3d | Tipo J: %3d", estatInst.tipoR, estatInst.tipoI, estatInst.tipoJ);
+
+
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvprintw(16, 5, "[ Detalhamento das Instrucoes ]");
+    attroff(COLOR_PAIR(2) | A_BOLD);    
+
+    mvprintw(18, 5, "ADD: %3d | SUB: %3d | AND: %3d | OR: %3d", estatInst.add, estatInst.sub, estatInst.and, estatInst.or);
+    mvprintw(19, 5, "ADDI: %3d | BEQ: %3d | LW: %3d | SW: %3d", estatInst.addi, estatInst.beq, estatInst.lw, estatInst.sw);
+    mvprintw(20, 5, "J: %3d", estatInst.j);
+
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvprintw(22, 5, "+------------------------------------------------+");
+    mvprintw(23, 5, "|                [ Voltar ]                      |");
+    mvprintw(24, 5, "+------------------------------------------------+");
+    attroff(COLOR_PAIR(1) | A_BOLD);
+
+    refresh();
+    
+    getch();*/
+
+
 }
 
 void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstrucoes *estatInst){
@@ -857,28 +900,28 @@ void imprimeInstrucao(instrucao *memoria, int pc) {
 
 void decodifica(instrucao *instrucao){
 
-    (*instrucao).opcode = (*instrucao).instrucao >> 12; // Pega os 4 bits do opcode
+    instrucao->opcode = instrucao->instrucao >> 12; // Pega os 4 bits do opcode
 
-    switch((*instrucao).opcode){
+    switch(instrucao->opcode){
     case 0:
-        (*instrucao).tipoInst = tipoR;
-        (*instrucao).rs = ((*instrucao).instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
-        (*instrucao).rt = ((*instrucao).instrucao >> 6) & 0x7; // pega os 3 bits do rt
-        (*instrucao).rd = ((*instrucao).instrucao >> 3) & 0x7; // pega os 3 bits do rd
-        (*instrucao).funct = ((*instrucao).instrucao) & 0x7;
+        instrucao->tipoInst = tipoR;
+        instrucao->rs = (instrucao->instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
+        instrucao->rt = (instrucao->instrucao >> 6) & 0x7; // pega os 3 bits do rt
+        instrucao->rd = (instrucao->instrucao >> 3) & 0x7; // pega os 3 bits do rd
+        instrucao->funct = (instrucao->instrucao) & 0x7;
         break;
 
     case 2:
-        (*instrucao).tipoInst = tipoJ;
-        (*instrucao).addr = ((*instrucao).instrucao) &0xFF; // pega os 8 bits do adress
+        instrucao->tipoInst = tipoJ;
+        instrucao->addr = (instrucao->instrucao) &0xFF; // pega os 8 bits do adress
         break;
 
     default:
-        (*instrucao).tipoInst = tipoI;
-        (*instrucao).rs = ((*instrucao).instrucao >> 9) &0x7; // pega os 3 bits do rs
-        (*instrucao).rt = ((*instrucao).instrucao >> 6) &0x7; // pega os 3 bits do rt
-        (*instrucao).imm = ((*instrucao).instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
-        (*instrucao).imm = extensorBit((*instrucao).imm);
+        instrucao->tipoInst = tipoI;
+        instrucao->rs = (instrucao->instrucao >> 9) &0x7; // pega os 3 bits do rs
+        instrucao->rt = (instrucao->instrucao >> 6) &0x7; // pega os 3 bits do rt
+        instrucao->imm = (instrucao->instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
+        instrucao->imm = extensorBit(instrucao->imm);
     }
 }
 
@@ -920,27 +963,6 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
 
     printf("Instruções no pipeline: %d/4\n", ocupados);
     printf("============================\n\n");
-}
-
-//---------------------------------------------------FUNÇÕES NCURSE--------------------------------------------------------------//
-
-void printMenu(){
-
-    mvprintw(1, 25, "MINIMIPS");
-    mvprintw(3, 5,  "0. Sair do Programa");
-    mvprintw(4, 5,  "1. Carregar Memoria de Instrucoes (.mem)");
-    mvprintw(5, 5,  "2. Carregar Memoria de Dados (.dat)");
-    mvprintw(6, 5,  "3. Imprimir memorias");
-    mvprintw(7, 5,  "4. Imprimir Banco de Registradores");
-    mvprintw(8, 5,  "5. Imprimir todo o Simulador");
-    mvprintw(9, 5,  "6. Salvar .asm");
-    mvprintw(10, 5, "7. Salvar .dat");
-    mvprintw(11, 5, "8. Executa programa (run)");
-    mvprintw(12, 5, "9. Executa uma instrucao (step)");
-    mvprintw(13, 5, "10. Volta uma instrucao (back)");
-    mvprintw(15, 5, "Digite uma opcao: ");
-
-    refresh();
 }
 
 
