@@ -162,7 +162,7 @@ void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, regist
     pipe->regMEM_WB_novo.valido = 0;
 
     // Ordem invertida: WB -> MEM -> EX -> ID -> IF
-    do_WB(&pipe->regMEM_WB_atual, bReg, estatInst);
+    executaWB(&pipe->regMEM_WB_atual, bReg, estatInst);
     do_MEM(&pipe->regEX_MEM_atual, &pipe->regMEM_WB_novo, memDados);
     do_EX(&pipe->regID_EX_atual, &pipe->regEX_MEM_novo);
     do_ID(&pipe->regID_EX_novo, &pipe->regIF_ID_atual, bReg);
@@ -542,14 +542,31 @@ void do_MEM(EX_MEM *in,
     out->valido = 1;
 }
 
-void do_WB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst) {
-    if(!in->valido) return; // bolha, não faz nada
-
-    if(in->sinais.EscReg) {
-        int8_t dado = in->sinais.MemParaReg ? in->mem : in->ulaSaida;
-        escreveRegistrador(bReg, in->rd, dado, 1);
+void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst) {
+    if(!in->valido){
+        return; // bolha, não faz nada
     }
-    estatInst->total++; // só conta instrução quando ela termina o WB
+    
+    printf("\n\n=============================================\n");
+    printf("\n                    WB\n");
+    printf("\n=============================================\n");
+    
+    if(in->sinais.EscReg == 1) {
+        int8_t dadoFinal;
+        
+        if(in->sinais.MemParaReg == 1){
+            dadoFinal = in->mem;
+            printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da memória)\n", dadoFinal);
+        }else{
+            dadoFinal = in->ulaSaida;
+            printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da ULA)\n", dadoFinal);
+        }
+
+        escreveRegistrador(bReg, in->rd, dadoFinal, in->sinais.EscReg);
+        printf("\n[ WB ] %d escrito no registrador $%d.\n", dadoFinal, in->rd);
+    }
+    
+    estatInst->total++;
 }
 
 void salvaASM(instrucao *memoria, int linhas) {
