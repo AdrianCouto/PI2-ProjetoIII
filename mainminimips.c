@@ -41,7 +41,7 @@ int main(){
     int *memDados = inicializaMemDados();
 
     registradoresPipeline pipe;
-    inicializa_pipeline(&pipe);
+    // inicializa_pipeline(&pipe);
 
     while (1) {
         

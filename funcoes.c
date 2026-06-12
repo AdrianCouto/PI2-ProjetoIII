@@ -912,34 +912,50 @@ void decodifica(instrucao *instrucao){
     }
 }
 
+int eh_bolha(sinaisUC sinais) {
+    if (sinais.EscReg || sinais.EscMem || sinais.branch || sinais.jump) {
+        return 0; // Tem algum sinal ativo, então não é bolha
+    }
+    return 1; // Tudo zero, É uma bolha
+}
+// TODO: Ajustar essas impressões - ncurses
 void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
     printf("\n========== Ciclo %d ==========\n", ciclo);
 
     int ocupados = 0;
 
     // IF
-    if(pipe->regIF_ID_atual) {
+    if(pipe->regIF_ID_atual.inst.instrucao!=0) {
         printf("IF : PC=%d opcode=%d\n", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.opcode);
         ocupados++;
     }
+    else{
+        printf("\nIF: Stall\n");
+    }
 
     // ID
-    if(pipe->regID_EX_atual) {
+    if(!eh_bolha(pipe->regID_EX_atual.sinais)) {
         printf("ID : opcode=%d rs=%d rt=%d rd=%d A=%d B=%d\n",
             pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt,
             pipe->regID_EX_atual.rd, pipe->regID_EX_atual.A, pipe->regID_EX_atual.B);
         ocupados++;
     }
+    else{
+        printf("\nID: Stall\n");
+    }
 
     // EX
-    if(pipe->regEX_MEM_atual) {
+    if(!eh_bolha(pipe->regEX_MEM_atual.sinais)) {
         printf("EX : opcode=%d ulaSaida=%d rd=%d\n",
             pipe->regEX_MEM_atual.opcode, pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.rd);
         ocupados++;
     }
+    else{
+        printf("\nEX: Stall\n");
+    }
 
     // MEM/WB - junta os dois pq WB só escreve o que veio de MEM
-    if(pipe->regMEM_WB_atual) {
+    if(!eh_bolha(pipe->regMEM_WB_atual.sinais)) {
         printf("MEM: opcode=%d ulaSaida=%d mem=%d rd=%d\n",
             pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.ulaSaida,
             pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.rd);
@@ -947,8 +963,12 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
             pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.rd);
         ocupados++;
     }
+    else{
+        printf("\nMEM: Stall\n");
+        printf("\nWB: Stall\n");
+    }
 
-    printf("Instruções no pipeline: %d/4\n", ocupados);
+    printf("Instruções no pipeline: %d/4\n", ocupados); // 4 instruções?
     printf("============================\n\n");
 }
 

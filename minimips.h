@@ -187,6 +187,7 @@ void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstruc
 void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatInstrucoes *estatInst);
 
 // ESTÁGIOS
+int eh_bolha(sinaisUC sinais); // função temporária para debug rápido
 void stall(sinaisUC *sinais);
 void do_IF(IF_ID *out, instrucao *memoria, int *pc);
 void do_ID(ID_EX *out, IF_ID *in, int *bReg);
@@ -194,4 +195,4 @@ void do_EX(ID_EX *in, EX_MEM *out);
 void do_MEM(EX_MEM *in, MEM_WB *out, int *memDados);
 void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst);
 void atualiza_regs_pipeline(registradoresPipeline *pipe);
-void inicializa_pipeline(registradoresPipeline *pipe);
+// void inicializa_pipeline(registradoresPipeline *pipe);
