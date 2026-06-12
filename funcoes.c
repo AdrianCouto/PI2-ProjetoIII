@@ -7,18 +7,6 @@
 
 FILE *arquivo, *arquivoMemDados;
 
-void inicializa_pipeline(registradoresPipeline *pipe) {
-    pipe->regIF_ID_atual.valido = 0;
-    pipe->regID_EX_atual.valido = 0;
-    pipe->regEX_MEM_atual.valido = 0;
-    pipe->regMEM_WB_atual.valido = 0;
-
-    pipe->regIF_ID_novo.valido = 0;
-    pipe->regID_EX_novo.valido = 0;
-    pipe->regEX_MEM_novo.valido = 0;
-    pipe->regMEM_WB_novo.valido = 0;
-}
-
 int contaLinhas(char *arq){
     arquivo = fopen(arq, "r");
     char ch;
@@ -140,26 +128,18 @@ void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registr
     while(!acabou)
     {
         step_pipeline(memoria, bReg, pc,
-                      memDados, pipe, estatInst);
-
-        if(pipe->regIF_ID_atual.valido == 0 &&
-           pipe->regID_EX_atual.valido == 0 &&
-           pipe->regEX_MEM_atual.valido == 0 &&
-           pipe->regMEM_WB_atual.valido == 0 &&
-           (*pc >= 256 ||
-            memoria[*pc].instrucao == 0))
-        {
+            memDados, pipe, estatInst);
+        
+        // TODO: É necessário arrumar a condição de finalização do programa
+        // Atualmente o loop encerra assim que o IF ê o HALT ou a memória acaba, 
+        // porém é finalizar as instruções que já estavam sendo executadas antes
+        if(*pc >= 256 ||memoria[*pc].instrucao == 0){  
             acabou = 1;
         }
     }
 }
 
 void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {
-
-    pipe->regIF_ID_novo.valido = 0;
-    pipe->regID_EX_novo.valido = 0;
-    pipe->regEX_MEM_novo.valido = 0;
-    pipe->regMEM_WB_novo.valido = 0;
 
     // Ordem invertida: WB -> MEM -> EX -> ID -> IF
     executaWB(&pipe->regMEM_WB_atual, bReg, estatInst);
@@ -444,21 +424,15 @@ int8_t retornaMemoria(int *memDados, uint8_t enderecoULA) {
 
 void do_IF(IF_ID *out, instrucao *memoria, int *pc) {
     if(*pc >= 256 || memoria[*pc].instrucao == 0) {
-        out->valido = 0; // bolha por HALT
         out->instrucao = 0;
         return;
     }
-    out->valido = 1;
     out->pc = *pc;
     out->inst = memoria[*pc]; // <- guarda a instrução inteira
     (*pc)++;
 }
 
 void do_ID(ID_EX *out, IF_ID *in, int *bReg) {
-    if(!in->valido) {
-        out->valido = 0; // propaga bolha
-        return;
-    }
 
     // decodifica normal
     instrucao inst = in->inst;
@@ -468,15 +442,9 @@ void do_ID(ID_EX *out, IF_ID *in, int *bReg) {
     out->rs = inst.rs; out->rt = inst.rt; out->rd = inst.rd;
     out->imm = inst.imm; out->funct = inst.funct; out->opcode = inst.opcode;
     lerRegistradores(bReg, inst.rs, inst.rt, &out->A, &out->B);
-    out->valido = 1; // marca que esse estágio tem instrução válida
 }
 
 void do_EX(ID_EX *in, EX_MEM *out) {
-
-    if(!in->valido){
-        out->valido = 0;
-        return;
-    }
 
     int op2;
     int zero;
@@ -505,17 +473,12 @@ void do_EX(ID_EX *in, EX_MEM *out) {
     else
         out->rd = in->rt;
 
-    out->valido = 1;
 }
 
 void do_MEM(EX_MEM *in,
             MEM_WB *out,
             int *memDados)
 {
-    if(!in->valido){
-        out->valido = 0;
-        return;
-    }
 
     out->opcode = in->opcode;
     out->rd = in->rd;
@@ -538,14 +501,9 @@ void do_MEM(EX_MEM *in,
                 in->ulaSaida
             );
     }
-
-    out->valido = 1;
 }
 
-void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst) {
-    if(!in->valido){
-        return; // bolha, não faz nada
-    }
+void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst) { // Mudar "in"
     
     printf("\n\n=============================================\n");
     printf("\n                    WB\n");
@@ -567,6 +525,18 @@ void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst) {
     }
     
     estatInst->total++;
+}
+
+void stall(sinaisUC *sinais){
+    sinais->EscMem = 0;
+    sinais->EscReg = 0;
+    sinais->IncPC = 0;
+    sinais->branch = 0;
+    sinais->MemParaReg = 0;
+    sinais->RegDst = 0;
+    sinais->UlaFonte = 0;
+    sinais->ulaOp = 0;
+    sinais->jump = 0;
 }
 
 void salvaASM(instrucao *memoria, int linhas) {
@@ -948,13 +918,13 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
     int ocupados = 0;
 
     // IF
-    if(pipe->regIF_ID_atual.valido) {
+    if(pipe->regIF_ID_atual) {
         printf("IF : PC=%d opcode=%d\n", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.opcode);
         ocupados++;
     }
 
     // ID
-    if(pipe->regID_EX_atual.valido) {
+    if(pipe->regID_EX_atual) {
         printf("ID : opcode=%d rs=%d rt=%d rd=%d A=%d B=%d\n",
             pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt,
             pipe->regID_EX_atual.rd, pipe->regID_EX_atual.A, pipe->regID_EX_atual.B);
@@ -962,14 +932,14 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
     }
 
     // EX
-    if(pipe->regEX_MEM_atual.valido) {
+    if(pipe->regEX_MEM_atual) {
         printf("EX : opcode=%d ulaSaida=%d rd=%d\n",
             pipe->regEX_MEM_atual.opcode, pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.rd);
         ocupados++;
     }
 
     // MEM/WB - junta os dois pq WB só escreve o que veio de MEM
-    if(pipe->regMEM_WB_atual.valido) {
+    if(pipe->regMEM_WB_atual) {
         printf("MEM: opcode=%d ulaSaida=%d mem=%d rd=%d\n",
             pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.ulaSaida,
             pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.rd);
