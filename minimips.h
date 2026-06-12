@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#ifndef MINIMIPS_H
+#define MINIMIPS_H
+
 #define MAX_HIST 1000
 
  extern FILE *arquivo, *arquivoMemDados;
@@ -57,7 +60,6 @@ typedef struct {
 typedef struct{
     int pc;
     uint16_t instrucao;
-    int valido;
     instrucao inst;
 }IF_ID;
 
@@ -71,7 +73,6 @@ typedef struct{
     uint8_t rd;
     uint8_t funct;
     int8_t imm;
-    int valido;
 }ID_EX;
 
 typedef struct{
@@ -80,7 +81,7 @@ typedef struct{
     int8_t ulaSaida;
     int8_t B; // Valor escrito na memória em um store (RT)
     uint8_t rd;
-    int valido;
+    int8_t zero; // Utilizado na detecção de hazards de controle
 }EX_MEM;
 
 typedef struct{
@@ -89,7 +90,6 @@ typedef struct{
     int8_t mem;
     int8_t ulaSaida;
     uint8_t rd;
-    int valido;
 }MEM_WB;
 
 typedef struct{
@@ -191,10 +191,15 @@ void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstruc
 void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatInstrucoes *estatInst);
 
 // ESTÁGIOS
+int eh_bolha(sinaisUC sinais); // função temporária para debug rápido
+void insereStall(sinaisUC *sinais);
+void insereFlush(registradoresPipeline *pipe);
 void do_IF(IF_ID *out, instrucao *memoria, int *pc);
 void do_ID(ID_EX *out, IF_ID *in, int *bReg);
 void do_EX(ID_EX *in, EX_MEM *out);
 void do_MEM(EX_MEM *in, MEM_WB *out, int *memDados);
-void do_WB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst);
+void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst);
 void atualiza_regs_pipeline(registradoresPipeline *pipe);
-void inicializa_pipeline(registradoresPipeline *pipe);
+// void inicializa_pipeline(registradoresPipeline *pipe);
+
+#endif
