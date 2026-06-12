@@ -132,8 +132,8 @@ void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registr
             memDados, pipe, estatInst);
         
         // TODO: É necessário arrumar a condição de finalização do programa
-        // Atualmente fica em loop pois eh_bolha considera escReg = 1 como uma instrução útil
-        if(pipe->regIF_ID_atual.inst.instrucao == 0 && eh_bolha(pipe->regID_EX_atual.sinais) && eh_bolha(pipe->regEX_MEM_atual.sinais) && eh_bolha(pipe->regMEM_WB_atual.sinais) && (*pc >= 256 || memoria[*pc].instrucao == 0) && (*pc >= 256 ||memoria[*pc].instrucao == 0)){  
+        // Atualmente fica em loop pois Verifica_Bolha considera escReg = 1 como uma instrução útil
+        if(pipe->regIF_ID_atual.inst.instrucao == 0 && Verifica_Bolha(pipe->regID_EX_atual.sinais) && Verifica_Bolha(pipe->regEX_MEM_atual.sinais) && Verifica_Bolha(pipe->regMEM_WB_atual.sinais) && (*pc >= 256 || memoria[*pc].instrucao == 0) && (*pc >= 256 ||memoria[*pc].instrucao == 0)){  
             acabou = 1;
         }
     }
@@ -142,10 +142,10 @@ void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registr
 void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {
 
     // Ordem invertida: WB -> MEM -> EX -> ID -> IF
-    executaWB(&pipe->regMEM_WB_atual, bReg, estatInst);
-    do_MEM(&pipe->regEX_MEM_atual, &pipe->regMEM_WB_novo, memDados);
-    do_EX(&pipe->regID_EX_atual, &pipe->regEX_MEM_novo);
-    do_ID(&pipe->regID_EX_novo, &pipe->regIF_ID_atual, bReg);
+    Executa_WB(&pipe->regMEM_WB_atual, bReg, estatInst);
+    Executa_MEM(&pipe->regEX_MEM_atual, &pipe->regMEM_WB_novo, memDados);
+    Executa_EX(&pipe->regID_EX_atual, &pipe->regEX_MEM_novo);
+    Executa_ID(&pipe->regID_EX_novo, &pipe->regIF_ID_atual, bReg);
 
     int hazard = unidadeDetecHazards(&pipe->regIF_ID_atual, &pipe->regID_EX_atual, &pipe->regEX_MEM_atual);
 
@@ -159,7 +159,7 @@ void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, regist
         insereFlush(pipe);
     }
 
-    do_IF(&pipe->regIF_ID_novo, memoria, pc);
+    Executa_IF(&pipe->regIF_ID_novo, memoria, pc);
 
     atualiza_regs_pipeline(pipe);
     estatInst->ciclos++;
@@ -435,103 +435,92 @@ int8_t retornaMemoria(int *memDados, uint8_t enderecoULA) {
     return memDados[enderecoULA];
 }
 
-void do_IF(IF_ID *out, instrucao *memoria, int *pc) {
-    if(*pc >= 256 || memoria[*pc].instrucao == 0) {
-        out->inst.instrucao = 0;
+void Executa_IF(IF_ID *IF_ID, instrucao *memoria, int *pc) {
+    
+    if(*pc >= 256 || memoria[*pc].instrucao == 0) { // verifica se ainda tem inst
+        IF_ID->inst.instrucao = 0; // chegou no fim insere inst vazia 
         return;
     }
-    out->pc = *pc;
-    out->inst = memoria[*pc]; // <- guarda a instrução inteira
-    (*pc)++;
+    IF_ID->pc = *pc;
+    IF_ID->inst = memoria[*pc]; // guarda a instrução
+   (*pc)++;
+
 }
 
-void do_ID(ID_EX *out, IF_ID *in, int *bReg) {
+void Executa_ID(ID_EX *ID_EX, IF_ID *IF_ID, int *bReg) {
 
     // decodifica normal
-    decodificaInst(&in->inst);
-    unidadeControle(&in->inst, &out->sinais);
+    decodificaInst(&IF_ID->inst);
+    unidadeControle(&IF_ID->inst, &ID_EX->sinais);
 
-    out->rs = in->inst.rs; out->rt = in->inst.rt; out->rd = in->inst.rd;
-    out->imm = in->inst.imm; out->funct = in->inst.funct; out->opcode = in->inst.opcode;
-    lerRegistradores(bReg, in->inst.rs, in->inst.rt, &out->A, &out->B);
+    ID_EX->rs = IF_ID->inst.rs; 
+    ID_EX->rt = IF_ID->inst.rt; 
+    ID_EX->rd = IF_ID->inst.rd;
+    ID_EX->imm = IF_ID->inst.imm; 
+    ID_EX->funct = IF_ID->inst.funct; 
+    ID_EX->opcode = IF_ID->inst.opcode;
+
+    lerRegistradores(bReg, IF_ID->inst.rs, IF_ID->inst.rt, &ID_EX->A, &ID_EX->B);
+
 }
 
-void do_EX(ID_EX *in, EX_MEM *out) {
+void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM) {
 
     int op2;
     int zero;
     int overflow;
 
-    if(in->sinais.UlaFonte)
-        op2 = in->imm;
+    if(ID_EX->sinais.UlaFonte)
+        op2 = ID_EX->imm;
     else
-        op2 = in->B;
+        op2 = ID_EX->B;
 
-    out->ulaSaida =
-        ULA(in->A,
-            op2,
-            in->sinais.ulaOp,
-            &zero,
-            &overflow);
+    EX_MEM->ulaSaida = ULA(ID_EX->A, op2, ID_EX->sinais.ulaOp, &zero, &overflow);
 
-    out->opcode = in->opcode;
+    EX_MEM->opcode = ID_EX->opcode;
+    EX_MEM->B = ID_EX->B;
+    EX_MEM->sinais = ID_EX->sinais;
 
-    out->B = in->B;
-
-    out->sinais = in->sinais;
-
-    if(in->sinais.RegDst)
-        out->rd = in->rd;
+    if(ID_EX->sinais.RegDst)
+        EX_MEM->rd = ID_EX->rd;
     else
-        out->rd = in->rt;
+        EX_MEM->rd = ID_EX->rt;
 
 }
 
-void do_MEM(EX_MEM *in,
-            MEM_WB *out,
-            int *memDados)
-{
+void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
 
-    out->opcode = in->opcode;
-    out->rd = in->rd;
-    out->sinais = in->sinais;
+    MEM_WB->opcode = EX_MEM->opcode;
+    MEM_WB->rd = EX_MEM->rd;
+    MEM_WB->sinais = EX_MEM->sinais;
+    MEM_WB->ulaSaida = EX_MEM->ulaSaida;
 
-    out->ulaSaida = in->ulaSaida;
-
-    if(in->sinais.EscMem){
-        escreveMemDados(
-            memDados,
-            in->ulaSaida,
-            in->B
-        );
+    if(EX_MEM->sinais.EscMem){
+        escreveMemDados(memDados, EX_MEM->ulaSaida, EX_MEM->B);
     }
 
-    if(in->sinais.MemParaReg == 0){
-        out->mem =
-            retornaMemoria(
-                memDados,
-                in->ulaSaida
-            );
+    if(EX_MEM->sinais.MemParaReg == 0){
+        MEM_WB->mem = retornaMemoria(memDados,EX_MEM->ulaSaida);
     }
 }
 
-void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst) { // Mudar "in"
+void Executa_WB(MEM_WB *MEM_WB, int *bReg, estatInstrucoes *estatInst) { // Mudar "in"
     
     printf("\n\n==================== WB =======================\n");
     
-    if(in->sinais.EscReg == 1) {
+    if(MEM_WB->sinais.EscReg == 1) {
         int8_t dadoFinal;
         
-        if(in->sinais.MemParaReg == 1){
-            dadoFinal = in->mem;
+        if(MEM_WB->sinais.MemParaReg == 1){
+            dadoFinal = MEM_WB->mem;
             printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da memória)\n", dadoFinal);
         }else{
-            dadoFinal = in->ulaSaida;
+            dadoFinal = MEM_WB->ulaSaida;
             printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da ULA)\n", dadoFinal);
         }
 
-        escreveRegistrador(bReg, in->rd, dadoFinal, in->sinais.EscReg);
-        printf("\n[ WB ] %d escrito no registrador $%d.\n", dadoFinal, in->rd);
+        escreveRegistrador(bReg, MEM_WB->rd, dadoFinal, MEM_WB->sinais.EscReg);
+        printf("\n[ WB ] %d escrito no registrador $%d.\n", dadoFinal, MEM_WB->rd);
     }
     else{
         printf("\nSem instrução\n");
@@ -931,12 +920,13 @@ void decodifica(instrucao *instrucao){
     }
 }
 
-int eh_bolha(sinaisUC sinais) {
+int Verifica_Bolha(sinaisUC sinais) {
     if ((sinais.EscReg || sinais.EscMem || sinais.branch || sinais.jump)) {
         return 0; // Tem algum sinal ativo, então não é bolha
     }
     return 1; // Tudo zero, É uma bolha
 }
+
 // TODO: Ajustar essas impressões - ncurses
 void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
     printf("\n========== Ciclo %d ==========\n", ciclo);
@@ -953,7 +943,7 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
     }
 
     // ID
-    if(!eh_bolha(pipe->regID_EX_atual.sinais)) {
+    if(!Verifica_Bolha(pipe->regID_EX_atual.sinais)) {
         printf("ID : opcode=%d rs=%d rt=%d rd=%d A=%d B=%d\n",
             pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt,
             pipe->regID_EX_atual.rd, pipe->regID_EX_atual.A, pipe->regID_EX_atual.B);
@@ -964,7 +954,7 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
     }
 
     // EX
-    if(!eh_bolha(pipe->regEX_MEM_atual.sinais)) {
+    if(!Verifica_Bolha(pipe->regEX_MEM_atual.sinais)) {
         printf("EX : opcode=%d ulaSaida=%d rd=%d\n",
             pipe->regEX_MEM_atual.opcode, pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.rd);
         ocupados++;
@@ -974,7 +964,7 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
     }
 
     // MEM/WB - junta os dois pq WB só escreve o que veio de MEM
-    if(!eh_bolha(pipe->regMEM_WB_atual.sinais)) {
+    if(!Verifica_Bolha(pipe->regMEM_WB_atual.sinais)) {
         printf("MEM: opcode=%d ulaSaida=%d mem=%d rd=%d\n",
             pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.ulaSaida,
             pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.rd);
