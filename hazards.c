@@ -4,11 +4,18 @@
 tipoHazard unidadeDetecHazards(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM){
     int hazardDado=0, hazardControle=0;
 
-    hazardDado = detectaHazardDados(IF_ID, ID_EX, EX_MEM);
-    
-
+    hazardDado = detectaHazardDados(IF_ID, ID_EX, EX_MEM);    
     hazardControle = detectaHazardControle(IF_ID);
 
+    if(hazardDado==1){
+        return 1;
+    }
+    
+    if(hazardControle==1){
+        return 2;
+    }
+
+    return 0;
 }
 
 tipoHazard detectaHazardDados(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM){

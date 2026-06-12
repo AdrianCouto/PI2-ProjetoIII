@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <ncurses.h>
 #include "minimips.h"
+#include "hazards.h"
 
 FILE *arquivo, *arquivoMemDados;
 
@@ -146,6 +147,15 @@ void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, regist
     do_MEM(&pipe->regEX_MEM_atual, &pipe->regMEM_WB_novo, memDados);
     do_EX(&pipe->regID_EX_atual, &pipe->regEX_MEM_novo);
     do_ID(&pipe->regID_EX_novo, &pipe->regIF_ID_atual, bReg);
+
+    int hazard = unidadeDetecHazards(&pipe->regIF_ID_atual, &pipe->regID_EX_atual, &pipe->regEX_MEM_atual);
+
+    if(hazard==1){
+        insereStall(&pipe->regID_EX_novo.sinais);
+        pipe->regIF_ID_novo = pipe->regIF_ID_atual;
+        estatInst->stalls++;
+    }
+
     do_IF(&pipe->regIF_ID_novo, memoria, pc);
 
     atualiza_regs_pipeline(pipe);
@@ -527,7 +537,7 @@ void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst) { // Mudar "in
     estatInst->total++;
 }
 
-void stall(sinaisUC *sinais){
+void insereStall(sinaisUC *sinais){
     sinais->EscMem = 0;
     sinais->EscReg = 0;
     sinais->IncPC = 0;
