@@ -8,5 +8,5 @@ typedef enum{
 
 tipoHazard unidadeDetecHazards(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM);
 tipoHazard detectaHazardDados(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM);
-tipoHazard detectaHazardControle();
+tipoHazard detectaHazardControle(ID_EX *ID_EX, EX_MEM *EX_MEM);
 #endif

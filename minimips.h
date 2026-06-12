@@ -81,6 +81,7 @@ typedef struct{
     int8_t ulaSaida;
     int8_t B; // Valor escrito na memória em um store (RT)
     uint8_t rd;
+    int8_t zero; // Utilizado na detecção de hazards de controle
 }EX_MEM;
 
 typedef struct{
@@ -192,6 +193,7 @@ void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatIns
 // ESTÁGIOS
 int eh_bolha(sinaisUC sinais); // função temporária para debug rápido
 void insereStall(sinaisUC *sinais);
+void insereFlush(registradoresPipeline *pipe);
 void do_IF(IF_ID *out, instrucao *memoria, int *pc);
 void do_ID(ID_EX *out, IF_ID *in, int *bReg);
 void do_EX(ID_EX *in, EX_MEM *out);

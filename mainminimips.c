@@ -40,7 +40,7 @@ int main(){
     int *bReg = inicializaBReg();
     int *memDados = inicializaMemDados();
 
-    registradoresPipeline pipe;
+    registradoresPipeline pipe = {0};
     // inicializa_pipeline(&pipe);
 
     while (1) {

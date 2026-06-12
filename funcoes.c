@@ -132,9 +132,8 @@ void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registr
             memDados, pipe, estatInst);
         
         // TODO: É necessário arrumar a condição de finalização do programa
-        // Atualmente o loop encerra assim que o IF ê o HALT ou a memória acaba, 
-        // porém é finalizar as instruções que já estavam sendo executadas antes
-        if(*pc >= 256 ||memoria[*pc].instrucao == 0){  
+        // Atualmente fica em loop pois eh_bolha considera escReg = 1 como uma instrução útil
+        if(pipe->regIF_ID_atual.inst.instrucao == 0 && eh_bolha(pipe->regID_EX_atual.sinais) && eh_bolha(pipe->regEX_MEM_atual.sinais) && eh_bolha(pipe->regMEM_WB_atual.sinais) && (*pc >= 256 || memoria[*pc].instrucao == 0) && (*pc >= 256 ||memoria[*pc].instrucao == 0)){  
             acabou = 1;
         }
     }
@@ -154,6 +153,10 @@ void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, regist
         insereStall(&pipe->regID_EX_novo.sinais);
         pipe->regIF_ID_novo = pipe->regIF_ID_atual;
         estatInst->stalls++;
+        (*pc)--; // porque atualmente o pc está sendo incrementado sempre no do_if
+    }
+    else if(hazard==2){
+        insereFlush(pipe);
     }
 
     do_IF(&pipe->regIF_ID_novo, memoria, pc);
@@ -434,7 +437,7 @@ int8_t retornaMemoria(int *memDados, uint8_t enderecoULA) {
 
 void do_IF(IF_ID *out, instrucao *memoria, int *pc) {
     if(*pc >= 256 || memoria[*pc].instrucao == 0) {
-        out->instrucao = 0;
+        out->inst.instrucao = 0;
         return;
     }
     out->pc = *pc;
@@ -445,13 +448,12 @@ void do_IF(IF_ID *out, instrucao *memoria, int *pc) {
 void do_ID(ID_EX *out, IF_ID *in, int *bReg) {
 
     // decodifica normal
-    instrucao inst = in->inst;
-    decodificaInst(&inst);
-    unidadeControle(&inst, &out->sinais);
+    decodificaInst(&in->inst);
+    unidadeControle(&in->inst, &out->sinais);
 
-    out->rs = inst.rs; out->rt = inst.rt; out->rd = inst.rd;
-    out->imm = inst.imm; out->funct = inst.funct; out->opcode = inst.opcode;
-    lerRegistradores(bReg, inst.rs, inst.rt, &out->A, &out->B);
+    out->rs = in->inst.rs; out->rt = in->inst.rt; out->rd = in->inst.rd;
+    out->imm = in->inst.imm; out->funct = in->inst.funct; out->opcode = in->inst.opcode;
+    lerRegistradores(bReg, in->inst.rs, in->inst.rt, &out->A, &out->B);
 }
 
 void do_EX(ID_EX *in, EX_MEM *out) {
@@ -515,9 +517,7 @@ void do_MEM(EX_MEM *in,
 
 void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst) { // Mudar "in"
     
-    printf("\n\n=============================================\n");
-    printf("\n                    WB\n");
-    printf("\n=============================================\n");
+    printf("\n\n==================== WB =======================\n");
     
     if(in->sinais.EscReg == 1) {
         int8_t dadoFinal;
@@ -533,6 +533,10 @@ void executaWB(MEM_WB *in, int *bReg, estatInstrucoes *estatInst) { // Mudar "in
         escreveRegistrador(bReg, in->rd, dadoFinal, in->sinais.EscReg);
         printf("\n[ WB ] %d escrito no registrador $%d.\n", dadoFinal, in->rd);
     }
+    else{
+        printf("\nSem instrução\n");
+    }
+    printf("\n=============================================\n");
     
     estatInst->total++;
 }
@@ -547,6 +551,11 @@ void insereStall(sinaisUC *sinais){
     sinais->UlaFonte = 0;
     sinais->ulaOp = 0;
     sinais->jump = 0;
+}
+
+void insereFlush(registradoresPipeline *pipe){
+    insereStall(&pipe->regID_EX_novo.sinais);
+    pipe->regIF_ID_novo.inst.instrucao = 0;
 }
 
 void salvaASM(instrucao *memoria, int linhas) {
@@ -923,7 +932,7 @@ void decodifica(instrucao *instrucao){
 }
 
 int eh_bolha(sinaisUC sinais) {
-    if (sinais.EscReg || sinais.EscMem || sinais.branch || sinais.jump) {
+    if ((sinais.EscReg || sinais.EscMem || sinais.branch || sinais.jump)) {
         return 0; // Tem algum sinal ativo, então não é bolha
     }
     return 1; // Tudo zero, É uma bolha
@@ -940,7 +949,7 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
         ocupados++;
     }
     else{
-        printf("\nIF: Stall\n");
+        printf("Stall ou NOP\n");
     }
 
     // ID
@@ -951,7 +960,7 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
         ocupados++;
     }
     else{
-        printf("\nID: Stall\n");
+        printf("Stall ou NOP\n");
     }
 
     // EX
@@ -961,7 +970,7 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
         ocupados++;
     }
     else{
-        printf("\nEX: Stall\n");
+        printf("Stall ou NOP\n");
     }
 
     // MEM/WB - junta os dois pq WB só escreve o que veio de MEM
@@ -974,8 +983,8 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
         ocupados++;
     }
     else{
-        printf("\nMEM: Stall\n");
-        printf("\nWB: Stall\n");
+        printf("Stall ou NOP\n");
+        printf("Stall ou NOP\n");
     }
 
     printf("Instruções no pipeline: %d/4\n", ocupados); // 4 instruções?
