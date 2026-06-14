@@ -637,7 +637,7 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
 
     noecho();
     curs_set(0);
-
+    
     snprintf(nomeASM, sizeof(nomeASM), "%s%s", nome, extensao);
 
     // Loop principal de verificação de existência do arquivo

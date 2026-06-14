@@ -227,7 +227,6 @@ int main(){
                 }while(opcao<1 || opcao>3);
                 break;
         case 5:
-            endwin();
             salvaASM(colunaspainel, linhaspainel, memoria, linhas);
             iniciaNcurses();
             break;
