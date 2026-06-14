@@ -29,20 +29,30 @@ int contaLinhas(char *arq){
 }
 
 // Leitura da memória
-void lerMem(char *arq, instrucao **memoria, int linhas){
+int lerMem(int colunaspainel, int linhaspainel, char *arq, instrucao **memoria, int linhas){
+    
     *memoria = calloc(256, sizeof(instrucao));
-    if(memoria == NULL){
-    printf("\nMemoria não carregada!\n");
-    return;
+    
+    clear();
+
+    printBorda(linhaspainel, colunaspainel);
+
+if(*memoria == NULL){
+    mvprintw((linhaspainel/2) , (colunaspainel/2), "Memoria nao carregada!");
+    refresh();
+    return 0;
 }
-    arquivo = fopen(arq, "r");
+
+arquivo = fopen(arq, "r");
+
+if(arquivo == NULL){
+    mvprintw((linhaspainel/2) , (colunaspainel/2), "Arquivo nao encontrado!");
+    refresh();
+    return 0;
+}
+
     int i=0;
     char mem[17];
-
-    if(arquivo==NULL){
-        printf("\nPermissão negada!");
-        return;
-    }
 
     for(i=0;i<256;i++){
         if(linhas && fscanf(arquivo, "%16s", mem) != EOF){
@@ -53,61 +63,136 @@ void lerMem(char *arq, instrucao **memoria, int linhas){
             (*memoria)[i].instrucao = 0;
         }
     }
+    
+    refresh();
 
     fclose(arquivo);
+    return 1;
+
 }
 
-void imprimeMemorias(instrucao *memoria, int *memDados){
-    int opt, x;
-    do{
-        printf("\n1. Memória de instruções\n2. Memória de dados\n");
-        printf("\nSelecione uma das opções acima: ");
-        scanf("%d", &opt);
+int lerMemDados(int linhaspainel, int colunaspainel, char *arqMem, int **memDados) {
+    
+    clear();
 
-        switch(opt){
-            case 1:
-	            x = 70;
+    printBorda(linhaspainel, colunaspainel);
+    
+    int i=0;
 
-                printf("\n%*sMemória de Instruções:\n\n", x, "");
+    if (*memDados == NULL) {
+        mvprintw((linhaspainel/2) , (colunaspainel/2), "Erro ao alocar memória");
+        return 0;
+    }
 
-                for (int linha = 0; linha < 64; linha++) {
-                    printf(" %3d: %16s: ", linha, memoria[linha].mem);
-                    imprimeInstrucao(memoria, linha);
+    arquivoMemDados = fopen(arqMem, "r");
+    if (arquivoMemDados == NULL) {
+        mvprintw((linhaspainel/2) , (colunaspainel/2), "Erro ao abrir o arquivo %s", arqMem);
+        return 0;
+    }
 
-                    printf("\t %3d: %16s: ", linha + 64, memoria[linha + 64].mem);
-                    imprimeInstrucao(memoria, linha + 64);
+    for(i = 0; i < 256; i++) {
+        fscanf(arquivoMemDados, "%d", &(*memDados)[i]);
+    }
 
-                    printf("\t %3d: %16s: ", linha + 128, memoria[linha + 128].mem);
-                    imprimeInstrucao(memoria, linha + 128);
+    printf("\nMemória carregada!\n");
 
-                    printf("\t %3d: %16s: ", linha + 192, memoria[linha + 192].mem);
-                    imprimeInstrucao(memoria, linha + 192);
+    fclose(arquivoMemDados);
+    return 1;
+}
 
-                    printf("\n");
-                }
-                printf("\n");
-                break;
+void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, int *memDados){
+    
+    int selecionado = 0;
+    int tecla;
 
-            case 2:
+    char *opcoes[] = {
+        "Memoria de Instrucoes",
+        "Memoria de Dados"
+    };
 
-                x = 20;
+    while(1){
 
-                printf("\n%*sMemória de Dados:\n\n", x, "");
+        clear();
+        printBorda(linhaspainel, colunaspainel);
 
-                for (int linha = 0; linha < 64; linha++) {
-                    printf("%3d: %3d\t %3d: %3d\t %3d: %3d\t %3d: %3d\n",
-                    linha, memDados[linha],
-                    linha + 64, memDados[linha + 64],
-                    linha + 128, memDados[linha + 128],
-                    linha + 192, memDados[linha + 192]);
-                }
-                printf("\n");
-                break;
+        mvprintw((linhaspainel/2) - 2, (colunaspainel/2) - 10, "Escolha uma memoria");
 
-            default:
-                printf("Opção inválida! Por favor, selecione uma das opções disponíveis.\n");
+        for(int i = 0; i < 2; i++){
+
+            if(i == selecionado){
+                attron(A_REVERSE | A_BOLD);
+            }
+            
+            mvprintw(linhaspainel/2 + i, colunaspainel/2 - 10, "%s", opcoes[i]);
+            
+            if(i == selecionado){
+                attroff(A_REVERSE | A_BOLD);
+            }
         }
-    }while(opt<1 || opt>2);
+
+        refresh();
+
+        tecla = getch();
+
+        switch(tecla){
+
+            case KEY_UP:
+                selecionado--;
+                if(selecionado < 0)
+                    selecionado = 1;
+                break;
+
+            case KEY_DOWN:
+                selecionado++;
+                if(selecionado > 1)
+                    selecionado = 0;
+                break;
+
+            case 10:
+            
+            int linha = 0;
+
+                if(selecionado == 0){
+                    
+                    for(int i = 0; i < linhaspainel - 1; i++){
+                        
+                        mvprintw(linha + 2, 2, "%3d: %16s", linha, memoria[linha].mem);
+
+                        mvprintw(linha + 2, 30, "%3d: %16s", linha + 64, memoria[linha + 64].mem);
+
+                        mvprintw(linha + 2, 58, "%3d: %16s", linha + 128, memoria[linha + 128].mem);
+
+                        mvprintw(linha + 2, 86, "%3d: %16s", linha + 192, memoria[linha + 192].mem);
+
+                        linha++;
+                    }
+                }
+
+                if(selecionado == 1){
+                    clear();
+
+                    printBorda(linhaspainel, colunaspainel);
+
+                    mvprintw(2, (colunaspainel/2), "Memoria de Dados");
+
+                    for(int linha = 0; linha < 32; linha++) {
+
+                        mvprintw(linha + 4,   2, "%3d: %3d", linha,       memDados[linha]);
+                        mvprintw(linha + 4,  22, "%3d: %3d", linha + 32,  memDados[linha + 32]);
+                        mvprintw(linha + 4,  42, "%3d: %3d", linha + 64,  memDados[linha + 64]);
+                        mvprintw(linha + 4,  62, "%3d: %3d", linha + 96,  memDados[linha + 96]);
+                        mvprintw(linha + 4,  82, "%3d: %3d", linha + 128, memDados[linha + 128]);
+                        mvprintw(linha + 4, 102, "%3d: %3d", linha + 160, memDados[linha + 160]);
+                        mvprintw(linha + 4, 122, "%3d: %3d", linha + 192, memDados[linha + 192]);
+                        mvprintw(linha + 4, 142, "%3d: %3d", linha + 224, memDados[linha + 224]);
+                    }
+                    refresh();
+                    getch();
+                }
+
+                return;
+        }
+    }
 }
 
 int8_t extensorBit(int8_t imm){
@@ -400,29 +485,6 @@ int *inicializaMemDados(){
     return calloc(256, sizeof(int));
 }
 
-void lerMemDados(char *arqMem, int **memDados) {
-    int i=0;
-
-    if (*memDados == NULL) {
-        printf("\nErro ao alocar memória\n");
-        return;
-    }
-
-    arquivoMemDados = fopen(arqMem, "r");
-    if (arquivoMemDados == NULL) {
-        printf("\nErro ao abrir o arquivo %s\n", arqMem);
-        return;
-    }
-
-    for(i = 0; i < 256; i++) {
-        fscanf(arquivoMemDados, "%d", &(*memDados)[i]);
-    }
-
-    printf("\nMemória carregada!\n");
-
-    fclose(arquivoMemDados);
-}
-
 void escreveMemDados(int *memDados, int endereco, int8_t valor) {
     if (endereco >= 0 && endereco < 256) {
         memDados[endereco] = valor;
@@ -547,94 +609,164 @@ void insereFlush(registradoresPipeline *pipe){
     pipe->regIF_ID_novo.inst.instrucao = 0;
 }
 
-void salvaASM(instrucao *memoria, int linhas) {
+void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linhas)
+{
     int pc = 0;
-    char nomeASM[50]={0}, nome[20], extensao[] = ".asm", resposta;
+    int tecla;
+    int selecionado = 0;
+    int indice = 1;
 
-    printf("\nDigite o nome do arquivo que deseja salvar (.asm): ");
-    fgets(nome, sizeof(nome),stdin);
-    nome[strcspn(nome,"\n")]='\0';
-    int indice=1;
+    char nome[20];
+    char nomeASM[50];
+    char extensao[] = ".asm";
 
-    strcat(nomeASM,nome);
-    strcat(nomeASM,extensao);
+    // MUITO IMPORTANTE: Certifique-se de que keypad(stdscr, TRUE); 
+    // foi chamado no seu main() para que KEY_UP e KEY_DOWN funcionem!
 
-    // Verifica se o arquivo existe
-    while (access(nomeASM, F_OK) != -1) {
-        printf("\nJá existe um arquivo com o nome %s, deseja sobrescrever? (s/n): ", nomeASM);
-        scanf(" %c", &resposta);
+    clear();
+    printBorda(linhaspainel, colunaspainel);
 
-        if (resposta == 's' || resposta == 'S') {
-            break;
-        } else if (resposta == 'n' || resposta == 'N') {
-            snprintf(nomeASM, sizeof(nomeASM), "%s_%d%s", nome, indice, extensao);
-            indice++;
+    attron(COLOR_PAIR(3) | A_BOLD);
+    mvprintw(linhaspainel/2, colunaspainel/2 - 25, "Digite o nome do arquivo:");
+    attroff(COLOR_PAIR(3) | A_BOLD);
+
+    echo();
+    curs_set(1);
+
+    mvgetnstr(linhaspainel/2, colunaspainel/2 + 5, nome, sizeof(nome)-1);
+
+    noecho();
+    curs_set(0);
+
+    snprintf(nomeASM, sizeof(nomeASM), "%s%s", nome, extensao);
+
+    // Loop principal de verificação de existência do arquivo
+    while(access(nomeASM, F_OK) != -1){
+
+        char *opcoes[] = { 
+            "Sim (sobrescrever)",
+            "Não (criar outro nome)"
+        };
+        
+        int confirmou = 0; // Flag para controlar a saída do menu interno
+
+        while(!confirmou){
+
+            clear();
+            printBorda(linhaspainel, colunaspainel);
+
+            attron(COLOR_PAIR(4) | A_BOLD);
+            mvprintw(linhaspainel/2 - 2, colunaspainel/2 - 25, "Arquivo '%s' ja existe.", nomeASM);
+            mvprintw(linhaspainel/2 - 1, colunaspainel/2 - 25, "Deseja sobrescrever?");
+            attroff(COLOR_PAIR(4) | A_BOLD);
+
+            for(int i = 0; i < 2; i++){
+                if(i == selecionado){
+                    attron(A_REVERSE | A_BOLD);
+                }
+                
+                mvprintw(linhaspainel/2 + 2 + i, colunaspainel/2 - 10, "%s", opcoes[i]);
+
+                if(i == selecionado){
+                    attroff(A_REVERSE | A_BOLD);
+                }
+            }
+
+            refresh();
+            tecla = getch();
+
+            switch(tecla){
+                case KEY_UP:
+                    selecionado--;
+                    if(selecionado < 0)
+                        selecionado = 1;
+                    break;
+
+                case KEY_DOWN:
+                    selecionado++;
+                    if(selecionado > 1)
+                        selecionado = 0;
+                    break;
+
+                case 10:          // Enter no Linux/Unix
+                case KEY_ENTER:   // Enter do teclado numérico
+                    confirmou = 1; // Usuário tomou uma decisão
+                    break;
+            }
+        }
+
+        // Processa a decisão do usuário após ele apertar ENTER
+        if(selecionado == 0){
+            /* Sobrescrever: sai do loop "while(access...)" e vai direto para a criação */
+            break; 
         } else {
-            printf("\nOpção inválida. Tente novamente.\n");
+            /* Não sobrescrever: gera um novo nome e o "while" testará se ele existe */
+            snprintf(nomeASM, sizeof(nomeASM), "%s_%d%s", nome, indice++, extensao);
         }
     }
 
-    arquivo = fopen(nomeASM, "w");
+    // Código de escrita do arquivo (Mantido igual, removido apenas o goto desnecessário)
+    FILE *arquivo = fopen(nomeASM, "w");
 
-    if (arquivo == NULL) {
-        printf("\nErro ao criar arquivo\n");
+    if(arquivo == NULL){
+        clear();
+        printBorda(linhaspainel, colunaspainel);
+
+        attron(COLOR_PAIR(4) | A_BOLD);
+        mvprintw(linhaspainel/2, colunaspainel/2 - 10, "Erro ao criar arquivo!");
+        attroff(COLOR_PAIR(4) | A_BOLD);
+
+        refresh();
+        getch();
         return;
     }
 
     while(pc < linhas){
-        if((memoria)[pc].decodificado==0){
+        if(memoria[pc].decodificado == 0)
             decodificaInst(&memoria[pc]);
-        }
 
         switch(memoria[pc].opcode){
-            case 0: // opcode = 0000
-
-                if(memoria[pc].funct==0){
-                    fprintf(arquivo,"add $%d, $%d, $%d\n", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
-                }
-                else if((memoria)[pc].funct==2){
-                    fprintf(arquivo,"sub $%d, $%d, $%d\n", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
-                }
-                else if((memoria)[pc].funct==4){
-                    fprintf(arquivo,"and $%d, $%d, $%d\n", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
-                }
-                else if((memoria)[pc].funct==5){
-                    fprintf(arquivo,"or $%d, $%d, $%d\n", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
-                }
+            case 0:
+                if(memoria[pc].funct == 0)
+                    fprintf(arquivo, "add $%d, $%d, $%d\n", memoria[pc].rd, memoria[pc].rs, memoria[pc].rt);
+                else if(memoria[pc].funct == 2)
+                    fprintf(arquivo, "sub $%d, $%d, $%d\n", memoria[pc].rd, memoria[pc].rs, memoria[pc].rt);
+                else if(memoria[pc].funct == 4)
+                    fprintf(arquivo, "and $%d, $%d, $%d\n", memoria[pc].rd, memoria[pc].rs, memoria[pc].rt);
+                else if(memoria[pc].funct == 5)
+                    fprintf(arquivo, "or $%d, $%d, $%d\n", memoria[pc].rd, memoria[pc].rs, memoria[pc].rt);
                 break;
 
-            case 2: // opcode = 0010 - J
-                fprintf(arquivo,"j %d\n", (memoria)[pc].addr);
-
+            case 2:
+                fprintf(arquivo, "j %d\n", memoria[pc].addr);
                 break;
-
-            case 4: // opcode = 0100 - Addi
-                fprintf(arquivo,"addi $%d, $%d, %d\n", (memoria)[pc].rt, (memoria)[pc].rs, (memoria)[pc].imm);
-
+            case 4:
+                fprintf(arquivo, "addi $%d, $%d, %d\n", memoria[pc].rt, memoria[pc].rs, memoria[pc].imm);
                 break;
-
-            case 8: // opcode = 1000 - BEQ
-                fprintf(arquivo,"beq $%d, $%d, %d\n", (memoria)[pc].rs, (memoria)[pc].rt, (memoria)[pc].imm);
-
+            case 8:
+                fprintf(arquivo, "beq $%d, $%d, %d\n", memoria[pc].rs, memoria[pc].rt, memoria[pc].imm);
                 break;
-
-            case 11: // opcode = 1011 - lw
-                fprintf(arquivo,"lw $%d, %d($%d)\n", (memoria)[pc].rt, (memoria)[pc].imm, (memoria)[pc].rs);
-
+            case 11:
+                fprintf(arquivo, "lw $%d, %d($%d)\n", memoria[pc].rt, memoria[pc].imm, memoria[pc].rs);
                 break;
-
-            case 15: // opcode = 1111 - sw
-                fprintf(arquivo,"sw $%d, %d($%d)\n", (memoria)[pc].rt, (memoria)[pc].imm, (memoria)[pc].rs);
-
+            case 15:
+                fprintf(arquivo,"sw $%d, %d($%d)\n", memoria[pc].rt, memoria[pc].imm, memoria[pc].rs);
                 break;
         }
-
         pc++;
     }
 
     fclose(arquivo);
 
-    printf("\nArquivo '%s' salvo!\n",nomeASM);
+    clear();
+    printBorda(linhaspainel, colunaspainel);
+
+    attron(COLOR_PAIR(3) | A_BOLD);
+    mvprintw(linhaspainel/2, colunaspainel/2 - 20, "Arquivo '%s' salvo com sucesso!", nomeASM);
+    attroff(COLOR_PAIR(3) | A_BOLD);
+
+    refresh();
+    getch();
 }
 
 void salvaDAT(int *memDados){
@@ -980,6 +1112,24 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
     printf("Instruções no pipeline: %d/4\n", ocupados); // 4 instruções?
     printf("============================\n\n");
 }
+
+void printBorda(int linhaspainel, int colunaspainel){
+
+    for(int i = 0; i < linhaspainel; i++) {
+        mvprintw(i, 0, "|");
+        mvprintw(i, colunaspainel - 1, "|");
+    }
+
+    for(int j = 0; j < colunaspainel; j++) {
+        mvprintw(0, j, "=");
+        mvprintw(linhaspainel - 1, j, "=");
+    }
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 
 
 /*
