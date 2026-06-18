@@ -1,32 +1,28 @@
+#ifndef MINIMIPS_H
+#define MINIMIPS_H
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <ncurses.h>
 
-#ifndef MINIMIPS_H
-#define MINIMIPS_H
-
-#define MAX_HIST 1000
-
- extern FILE *arquivo, *arquivoMemDados;
+extern FILE *arquivo, *arquivoMemDados;
 
 // struct das estatísticas
-typedef struct{
-    // estatísticas das instruções
+typedef struct {
     int tipoI;
     int tipoJ;
     int tipoR;
     int total;
     int add, sub, and, or, addi, beq, lw, sw, j;
-
-    // estatísticas de ciclos, CPI e stalls até o momento
-    int ciclos, stalls/*, hazards*/;
+    int ciclos, stalls;
     float CPI;
 } estatInstrucoes;
 
 // struct de sinais
-typedef struct{
+typedef struct {
     uint8_t branch;
     uint8_t jump;
     uint8_t IncPC;
@@ -36,13 +32,11 @@ typedef struct{
     uint8_t EscReg;
     uint8_t EscMem;
     uint8_t ulaOp;
-}sinaisUC;
+} sinaisUC;
+
+enum inst { tipoI, tipoJ, tipoR };
 
 // struct das instruções
-enum inst{
-    tipoI, tipoJ, tipoR
-};
-
 typedef struct {
     char mem[17];
     enum inst tipoInst;
@@ -57,149 +51,104 @@ typedef struct {
     int decodificado;
 } instrucao;
 
-typedef struct{
+typedef struct IF_ID {
     int pc;
     uint16_t instrucao;
     instrucao inst;
-}IF_ID;
+} IF_ID;
 
-typedef struct{
+typedef struct ID_EX {
     sinaisUC sinais;
     uint8_t opcode;
-    int8_t A; // RS
-    int8_t B; // RT
+    int8_t A;
+    int8_t B;
     uint8_t rs;
-    uint8_t rt; // Segue pois pode ser utilizado como destino no WB
+    uint8_t rt;
     uint8_t rd;
     uint8_t funct;
     int8_t imm;
-}ID_EX;
+} ID_EX;
 
-typedef struct{
-    sinaisUC sinais; // RegDst, UlaFont e ControleUla ficam
+typedef struct EX_MEM {
+    sinaisUC sinais;
     uint8_t opcode;
     int8_t ulaSaida;
-    int8_t B; // Valor escrito na memória em um store (RT)
+    int8_t B;
     uint8_t rd;
-    int8_t zero; // Utilizado na detecção de hazards de controle
-}EX_MEM;
+    int8_t zero;
+} EX_MEM;
 
-typedef struct{
-    sinaisUC sinais; // Branch, Jump e EscMem ficam
+typedef struct MEM_WB {
+    sinaisUC sinais;
     uint8_t opcode;
     int8_t mem;
     int8_t ulaSaida;
     uint8_t rd;
-}MEM_WB;
+} MEM_WB;
 
-typedef struct{
+typedef struct {
     IF_ID regIF_ID_atual, regIF_ID_novo;
     ID_EX regID_EX_atual, regID_EX_novo;
     EX_MEM regEX_MEM_atual, regEX_MEM_novo;
     MEM_WB regMEM_WB_atual, regMEM_WB_novo;
-}registradoresPipeline;
+} registradoresPipeline;
 
+// Estrutura completa do Estado do Simulador
 typedef struct {
     int pc;
     int memDados[256];
     int bReg[8];
     estatInstrucoes estat;
+    registradoresPipeline pipe;
 } estado;
 
+// Pilha Dinâmica para o Step-Back
+typedef struct Node {
+    estado st;
+    struct Node *next;
+} Node;
+
 typedef struct {
-    estado estados[MAX_HIST];
-    int topo;
+    Node *topo;
 } historico;
 
-/*Instruções:
-Tipo R:
-opcode: 4 bits (0000);
-rs: 3 bits;
-rt: 3 bits;
-rd: 3 bits;
-funct: 3 bits
+// Protótipos das Novas Funções e Modificadas
+void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstrucoes *estatInst, registradoresPipeline *pipe);
+void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatInstrucoes *estatInst, registradoresPipeline *pipe);
+void liberaHistorico(historico *hist);
 
-Tipo I:
-opcode: 4 bits;
-rs (base/registrador fonte): 3 bits;
-rt (destino/registrador fonte): 3 bits;
-imediato: 6 bits (estendido);
-
-Tipo J:
-opcode: 4 bits;
-End: 8 bits;
-*/
-
-// ------------------------------ PROTÓTIPOS -------------------------------
-
-// MENU / CONTROLE DO SISTEMA
-void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc);
-void imprimeEstatistica(estatInstrucoes estatInst);
-void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linhas);
-void salvaDAT(int *memDados);
-void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
-void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
-void printBorda(int linhaspainel, int colunaspainel);
-/*void carregaID_EX(instrucao *inst, int *bReg, registradoresPipeline *pipe);
-void carregaEX_MEM(registradoresPipeline *pipe, int8_t resultadoULA);
-void carregaMEM_WB(registradoresPipeline *pipe, int8_t dadoMemoria);
-*/
-
-// MEMÓRIA
-int contaLinhas(char *arq);
-int lerMem(int colunaspainel, int linhaspainel, char *arq, instrucao **memoria, int linhas);
-void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, int *memDados);
-void imprimeInstrucao(instrucao *memoria, int pc);
-void decodifica(instrucao *instrucao);
-
-// PROGRAM COUNTER (PC) / BUSCA
-void programCounter(int *pc, sinaisUC *sinais, instrucao *instrucao, int zero);
-
-
-// DECODIFICAÇÃO
-void decodificaInst(instrucao *instrucao);
-
-
-// UNIDADE DE CONTROLE (UC)
-void unidadeControle(instrucao *instrucao, sinaisUC *sinais);
-
-
-// BANCO DE REGISTRADORES (BREG)
-int *inicializaBReg();
-void lerRegistradores(int *reg, int8_t rs, int8_t rt, int8_t *valRs, int8_t *valRt);
-void escreveRegistrador(int *reg, int8_t rd, int8_t valor, int EscReg);
+void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *bReg, int pc, instrucao *memoria, int *memDados, historico *hist);
 void imprimeBancoRegistradores(int *reg);
 
-
-// EXECUÇÃO
-int executaInstrucao(instrucao *instrucao, sinaisUC *sinais, int *bReg, int *memDados);
-int8_t extensorBit(int8_t imm);
-void atualiza_regs_pipeline(registradoresPipeline *pipe);
-void print_pipeline_state(registradoresPipeline *pipe, int ciclo);
-
-// ULA (UNIDADE LÓGICA E ARITMÉTICA)
-int8_t ULA(int op1, int op2, int ulaOp, int *zero, int *overflow);
-
-// MEMÓRIA DE DADOS
-int *inicializaMemDados();
+int contaLinhas(char *arq);
+int lerMem(int colunaspainel, int linhaspainel, char *arq, instrucao **memoria, int linhas);
 int lerMemDados(int linhaspainel, int colunaspainel, char *arqMem, int **memDados);
-void escreveMemDados(int *memDados, int endereco, int8_t valor);
-int8_t retornaMemoria(int *memDados, uint8_t enderecoULA);
+void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, int *memDados);
+int *inicializaBReg();
+int *inicializaMemDados();
 
-// HISTÓRICO
-void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstrucoes *estatInst);
-void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatInstrucoes *estatInst);
+void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
+void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
+void atualiza_regs_pipeline(registradoresPipeline *pipe);
 
-// ESTÁGIOS
-int Verifica_Bolha(sinaisUC sinais); // função temporária para debug rápido
-void insereStall(sinaisUC *sinais);
-void insereFlush(registradoresPipeline *pipe);
 void Executa_IF(IF_ID *IF_ID, instrucao *memoria, int *pc);
 void Executa_ID(ID_EX *ID_EX, IF_ID *IF_ID, int *bReg);
 void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM);
-void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados);
+void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB, int *memDados);
 void Executa_WB(MEM_WB *MEM_WB, int *bReg, estatInstrucoes *estatInst);
-void atualiza_regs_pipeline(registradoresPipeline *pipe);
-// void inicializa_pipeline(registradoresPipeline *pipe);
+
+void insereStall(sinaisUC *sinais);
+void insereFlush(registradoresPipeline *pipe);
+void decodificaInst(instrucao *instrucao);
+void unidadeControle(instrucao *instrucao, sinaisUC *sinais);
+int8_t ULA(int op1, int op2, int ulaOp, int *zero, int *overflow);
+int8_t extensorBit(int8_t imm);
+int Verifica_Bolha(sinaisUC sinais);
+
+void printBorda(int linhas, int colunas);
+void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linhas);
+void salvaDAT(int *memDados);
+
+#include "hazards.h"
 
 #endif

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "minimips.h"
 #include "hazards.h"
 
 tipoHazard unidadeDetecHazards(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM){
