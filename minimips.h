@@ -135,20 +135,20 @@ End: 8 bits;
 // MENU / CONTROLE DO SISTEMA
 void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc);
 void imprimeEstatistica(estatInstrucoes estatInst);
-void salvaASM(instrucao *memoria, int linhas);
+void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linhas);
 void salvaDAT(int *memDados);
 void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
 void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
-/*
-void carregaID_EX(instrucao *inst, int *bReg, registradoresPipeline *pipe);
+void printBorda(int linhaspainel, int colunaspainel);
+/*void carregaID_EX(instrucao *inst, int *bReg, registradoresPipeline *pipe);
 void carregaEX_MEM(registradoresPipeline *pipe, int8_t resultadoULA);
 void carregaMEM_WB(registradoresPipeline *pipe, int8_t dadoMemoria);
 */
 
 // MEMÓRIA
 int contaLinhas(char *arq);
-void lerMem(char *arq, instrucao **memoria, int linhas);
-void imprimeMemorias(instrucao *memoria, int *memDados);
+int lerMem(int colunaspainel, int linhaspainel, char *arq, instrucao **memoria, int linhas);
+void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, int *memDados);
 void imprimeInstrucao(instrucao *memoria, int pc);
 void decodifica(instrucao *instrucao);
 
@@ -182,7 +182,7 @@ int8_t ULA(int op1, int op2, int ulaOp, int *zero, int *overflow);
 
 // MEMÓRIA DE DADOS
 int *inicializaMemDados();
-void lerMemDados(char *arqMem, int **memDados);
+int lerMemDados(int linhaspainel, int colunaspainel, char *arqMem, int **memDados);
 void escreveMemDados(int *memDados, int endereco, int8_t valor);
 int8_t retornaMemoria(int *memDados, uint8_t enderecoULA);
 
