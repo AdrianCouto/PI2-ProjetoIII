@@ -28,7 +28,6 @@ tipoHazard detectaHazardDados(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM){
     int hazard_MEM = escMEM && (EX_MEM->rd == IF_ID->inst.rs || EX_MEM->rd == IF_ID->inst.rt);
 
     if(hazard_EX || hazard_MEM){
-        printf("\nHazard de dados detectado!\n");
         return 1;
     }
     
