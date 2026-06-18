@@ -1019,7 +1019,7 @@ void imprimeInstrucao(instrucao *memoria, int pc) {
         case 0: // opcode = 0000
 
             if(memoria[pc].funct==0){
-                //printf("add $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
+                //mvprintfw("add $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
             }
             else if((memoria)[pc].funct==2){
                 //printf("sub $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
@@ -1069,26 +1069,46 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         clear();
         printBorda(linhaspainel, colunaspainel);
 
-        // Cabeçalho dos Registradores do Pipeline
         attron(A_BOLD | COLOR_PAIR(1));
-        mvprintw(2, 3, "=== ESTADO DOS REGISTRADORES DO PIPELINE ===");
+        mvprintw(0, colunaspainel/2 - 11, " SIMULADOR DE PIPELINE ");
         attroff(A_BOLD | COLOR_PAIR(1));
 
-        mvprintw(4, 3, "IF/ID  -> PC: %d | Inst: %04X (%s)", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.instrucao, pipe->regIF_ID_atual.inst.mem);
-        mvprintw(5, 3, "ID/EX  -> A: %d | B: %02d | Imm: %d | Opcode: %X | rs: %d rt: %d rd: %d", pipe->regID_EX_atual.A, pipe->regID_EX_atual.B, pipe->regID_EX_atual.imm, pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt, pipe->regID_EX_atual.rd);
-        mvprintw(6, 3, "EX/MEM -> UlaSaida: %d | B: %d | rd: %d", pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.B, pipe->regEX_MEM_atual.rd);
-        mvprintw(7, 3, "MEM/WB -> MemDado: %d | UlaSaida: %d | rd: %d", pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.ulaSaida, pipe->regMEM_WB_atual.rd);
-        mvprintw(8, 3, "PC Atual: %d", pc);
-
-        // Banco de Registradores ao lado direito
-        attron(A_BOLD | COLOR_PAIR(2));
-        mvprintw(2, colunaspainel - 30, "BANCO REGISTRADORES");
-        attroff(A_BOLD | COLOR_PAIR(2));
-        for(int i = 0; i < 8; i++) {
-            mvprintw(4 + i, colunaspainel - 30, "$%d: %d", i, bReg[i]);
+        for(int i = 1; i < colunaspainel - 1; i++){
+                mvprintw(linhaspainel/3, i, "_");
+                mvprintw(linhaspainel/1.5, i, "_");
+                mvprintw(linhaspainel - 4, i, "_");
         }
 
-        // Estatísticas abaixo
+        for(int j = 1; j < linhaspainel - 1; j++){
+            mvprintw(j/3 + 1, colunaspainel/5, "|");
+            mvprintw(j/3 + 1, (colunaspainel/5) * 2, "|");
+            mvprintw(j/3 + 1, (colunaspainel/5) * 3, "|");
+            mvprintw(j - linhaspainel/3 + 2, (colunaspainel/5) * 4, "|");
+
+        }
+
+        attron(A_BOLD | COLOR_PAIR(3));
+        mvprintw(1, colunaspainel/5 - 19, "IF");
+        mvprintw(1, (colunaspainel/5 * 2) - 19, "ID");
+        mvprintw(1, (colunaspainel/5 * 3) - 19, "EX");
+        mvprintw(1, (colunaspainel/5 * 4) - 19, "MEM");
+        mvprintw(1, (colunaspainel/5 * 5) - 19, "WB");
+        attroff(A_BOLD | COLOR_PAIR(3));
+        
+        //  -> PC: %d | Inst: %04X (%s)", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.instrucao, pipe->regIF_ID_atual.inst.mem);
+        //mvprintw(5, 3, "ID/EX  -> A: %d | B: %02d | Imm: %d | Opcode: %X | rs: %d rt: %d rd: %d", pipe->regID_EX_atual.A, pipe->regID_EX_atual.B, pipe->regID_EX_atual.imm, pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt, pipe->regID_EX_atual.rd);
+        //mvprintw(6, 3, "EX/MEM -> UlaSaida: %d | B: %d | rd: %d", pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.B, pipe->regEX_MEM_atual.rd);
+        //mvprintw(7, 3, "MEM/WB -> MemDado: %d | UlaSaida: %d | rd: %d", pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.ulaSaida, pipe->regMEM_WB_atual.rd);
+        //mvprintw(8, 3, "PC Atual: %d", pc);
+
+        attron(A_BOLD | COLOR_PAIR(2));
+        mvprintw(linhaspainel/2 - 4, colunaspainel - 23, "BANCO REGISTRADORES");
+        attroff(A_BOLD | COLOR_PAIR(2));
+        
+        for(int i = 0; i < 8; i++) {
+            mvprintw((linhaspainel/2) - 2 + i, colunaspainel - 23, "$%d: %d", i, bReg[i]);
+        }
+
         attron(A_BOLD | COLOR_PAIR(3));
         mvprintw(14, 3, "=== ESTATISTICAS ===");
         attroff(A_BOLD | COLOR_PAIR(3));
@@ -1097,15 +1117,17 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(17, 3, "R-Type: %d (add: %d, sub: %d, and: %d, or: %d)", estatInst->tipoR, estatInst->add, estatInst->sub, estatInst->and, estatInst->or);
         mvprintw(18, 3, "I-Type: %d (addi: %d, beq: %d, lw: %d, sw: %d) | J-Type: %d", estatInst->tipoI, estatInst->addi, estatInst->beq, estatInst->lw, estatInst->sw, estatInst->tipoJ);
 
-        // Menu Interativo abaixo
         attron(A_BOLD | COLOR_PAIR(4));
-        mvprintw(21, 3, "=== OPCOES DE EXECUCAO ===");
+        mvprintw(linhaspainel - 4, 3, " OPCOES DE EXECUCAO ");
         attroff(A_BOLD | COLOR_PAIR(4));
+        
         for(int i = 0; i < totalOpcoes; i++) {
             if(i == selecionado) {
                 attron(A_REVERSE | A_BOLD);
             }
-            mvprintw(23, 3 + (i * 18), "[ %s ]", opcoesMenu[i]);
+
+            mvprintw(linhaspainel - 2, 3 + (i * 18), "[ %s ]", opcoesMenu[i]);
+
             if(i == selecionado) {
                 attroff(A_REVERSE | A_BOLD);
             }
