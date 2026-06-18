@@ -135,7 +135,7 @@ void Executa_IF(IF_ID *IF_ID, instrucao *memoria, int *pc);
 void Executa_ID(ID_EX *ID_EX, IF_ID *IF_ID, int *bReg);
 void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM);
 void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB, int *memDados);
-void Executa_WB(MEM_WB *MEM_WB, int *bReg, estatInstrucoes *estatInst);
+void Executa_WB(MEM_WB *MEM_WB, int *bReg);
 
 void insereStall(sinaisUC *sinais);
 void insereFlush(registradoresPipeline *pipe);

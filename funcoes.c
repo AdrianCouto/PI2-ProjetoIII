@@ -265,7 +265,7 @@ void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, regist
     }
 
     // Executa os estágios normais
-    Executa_WB(&pipe->regMEM_WB_atual, bReg, estatInst);
+    Executa_WB(&pipe->regMEM_WB_atual, bReg);
     Executa_MEM(&pipe->regEX_MEM_atual, &pipe->regMEM_WB_novo, memDados);
     Executa_EX(&pipe->regID_EX_atual, &pipe->regEX_MEM_novo);
     Executa_ID(&pipe->regID_EX_novo, &pipe->regIF_ID_atual, bReg);
@@ -610,7 +610,7 @@ void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
     }
 }
 
-void Executa_WB(MEM_WB *MEM_WB, int *bReg, estatInstrucoes *estatInst) { 
+void Executa_WB(MEM_WB *MEM_WB, int *bReg) { 
     
     //printf("\n\n==================== WB =======================\n");
 
@@ -633,23 +633,7 @@ void Executa_WB(MEM_WB *MEM_WB, int *bReg, estatInstrucoes *estatInst) {
         escreveRegistrador(bReg, MEM_WB->rd, dadoFinal, MEM_WB->sinais.EscReg);
         //pri("\n[ WB ] %d escrito no registrador $%d.\n", dadoFinal, MEM_WB->rd);
     }
-    else{
-        //pri("\nSem instrução\n");
-    }
-    //pri("\n=============================================\n");
-    
-    if (MEM_WB->opcode == 0) {
-        estatInst->tipoR++;
-        estatInst->total++;
-    }
-    else if (MEM_WB->opcode == 2) { 
-        estatInst->tipoJ++;
-        estatInst->total++;
-    }
-    else if (MEM_WB->opcode == 4 || MEM_WB->opcode == 11 || MEM_WB->opcode == 15) {
-        estatInst->tipoI++;
-        estatInst->total++;
-    }
+
 }
 
 void insereStall(sinaisUC *sinais){
@@ -680,9 +664,6 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
     char nomeASM[50];
     char extensao[] = ".asm";
 
-    // MUITO IMPORTANTE: Certifique-se de que keypad(stdscr, TRUE); 
-    // foi chamado no seu main() para que KEY_UP e KEY_DOWN funcionem!
-
     clear();
     printBorda(linhaspainel, colunaspainel);
 
@@ -700,7 +681,6 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
     
     snprintf(nomeASM, sizeof(nomeASM), "%s%s", nome, extensao);
 
-    // Loop principal de verificação de existência do arquivo
     while(access(nomeASM, F_OK) != -1){
 
         char *opcoes[] = { 
@@ -708,7 +688,7 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
             "Não (criar outro nome)"
         };
         
-        int confirmou = 0; // Flag para controlar a saída do menu interno
+        int confirmou = 0;
 
         while(!confirmou){
 
