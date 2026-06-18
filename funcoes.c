@@ -150,22 +150,29 @@ void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, in
 
             case 10:
             
-            int linha = 0;
-
                 if(selecionado == 0){
+                    clear();
+
+                    printBorda(linhaspainel, colunaspainel);
                     
-                    for(int i = 0; i < linhaspainel - 1; i++){
-                        
-                        mvprintw(linha + 2, 2, "%3d: %16s", linha, memoria[linha].mem);
+                    attron(A_BOLD);
+                    mvprintw(2, (colunaspainel/2) - 10, "Memoria de Instrucoes");
+                    attroff(A_BOLD);
 
-                        mvprintw(linha + 2, 30, "%3d: %16s", linha + 64, memoria[linha + 64].mem);
+                    for(int linha = 0; linha < 32; linha++){
 
-                        mvprintw(linha + 2, 58, "%3d: %16s", linha + 128, memoria[linha + 128].mem);
-
-                        mvprintw(linha + 2, 86, "%3d: %16s", linha + 192, memoria[linha + 192].mem);
-
-                        linha++;
+                        mvprintw(linha + 4,   2, "%3d: %16s", linha,       memoria[linha].mem);
+                        mvprintw(linha + 4,  25, "%3d: %16s", linha + 32,  memoria[linha + 32].mem);
+                        mvprintw(linha + 4,  48, "%3d: %16s", linha + 64,  memoria[linha + 64].mem);
+                        mvprintw(linha + 4,  71, "%3d: %16s", linha + 96,  memoria[linha + 96].mem);
+                        mvprintw(linha + 4,  94, "%3d: %16s", linha + 128, memoria[linha + 128].mem);
+                        mvprintw(linha + 4, 117, "%3d: %16s", linha + 160, memoria[linha + 160].mem);
+                        mvprintw(linha + 4, 140, "%3d: %16s", linha + 192, memoria[linha + 192].mem);
+                        mvprintw(linha + 4, 163, "%3d: %16s", linha + 224, memoria[linha + 224].mem);
                     }
+
+                    refresh();
+                    getch();
                 }
 
                 if(selecionado == 1){
@@ -302,27 +309,6 @@ void atualiza_regs_pipeline(registradoresPipeline *pipe) {
     pipe->regMEM_WB_atual = pipe->regMEM_WB_novo;
 }
 
-// PC
-void programCounter(int *pc, sinaisUC *sinais, instrucao *instrucao, int zero){
-
-    // JUMP
-    if(sinais->jump == 1){
-        *pc = instrucao->addr;
-        //printf("\nPC atual: %d.\n", *pc);
-        return;
-    }
-
-    // BRANCH 
-    if(sinais->branch == 1 && zero == 1){
-        *pc = *pc + instrucao->imm + 1;
-        //printf("\nPC atual: %d.\n", *pc);
-        return;
-    }
-
-    // execução normal
-    (*pc)++;
-    //printf("\n[ PC+1 ]\nPC atual: %d.\n", *pc);
-}
 // Decodificação
 void decodificaInst(instrucao *instrucao){
 
