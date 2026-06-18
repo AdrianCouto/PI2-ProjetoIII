@@ -309,27 +309,6 @@ void atualiza_regs_pipeline(registradoresPipeline *pipe) {
     pipe->regMEM_WB_atual = pipe->regMEM_WB_novo;
 }
 
-// PC
-void programCounter(int *pc, sinaisUC *sinais, instrucao *instrucao, int zero){
-
-    // JUMP
-    if(sinais->jump == 1){
-        *pc = instrucao->addr;
-        //printf("\nPC atual: %d.\n", *pc);
-        return;
-    }
-
-    // BRANCH 
-    if(sinais->branch == 1 && zero == 1){
-        *pc = *pc + instrucao->imm + 1;
-        //printf("\nPC atual: %d.\n", *pc);
-        return;
-    }
-
-    // execução normal
-    (*pc)++;
-    //printf("\n[ PC+1 ]\nPC atual: %d.\n", *pc);
-}
 // Decodificação
 void decodificaInst(instrucao *instrucao){
 
