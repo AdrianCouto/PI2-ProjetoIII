@@ -14,7 +14,7 @@ int contaLinhas(char *arq){
     int count=0;
 
     if(arquivo==NULL){
-        printf("\nAcesso negado!\n");
+        //printf("\nAcesso negado!\n");
         return 0;
     }
 
@@ -94,7 +94,7 @@ int lerMemDados(int linhaspainel, int colunaspainel, char *arqMem, int **memDado
         fscanf(arquivoMemDados, "%d", &(*memDados)[i]);
     }
 
-    printf("\nMemória carregada!\n");
+    //printf("\nMemória carregada!\n");
 
     fclose(arquivoMemDados);
     return 1;
@@ -213,8 +213,7 @@ void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registr
 
     while(!acabou)
     {
-        step_pipeline(memoria, bReg, pc,
-            memDados, pipe, estatInst);
+        step_pipeline(memoria, bReg, pc, memDados, pipe, estatInst);
         
         // TODO: É necessário arrumar a condição de finalização do programa
         // Atualmente fica em loop pois Verifica_Bolha considera escReg = 1 como uma instrução útil
@@ -224,32 +223,76 @@ void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registr
     }
 }
 
-void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {
+void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {    
+    
+    // [CORREÇÃO EFETIVA]: Uma instrução só conta nas estatísticas se:
+    // 1. O opcode for diferente de 0 (Instruções Tipo-I e Tipo-J)
+    // 2. OU se o opcode for 0 (Tipo-R), mas o registrador destino 'rd' for diferente de 0 (evita contar NOPs/Bolhas)
+    int instrucao_valida = (pipe->regMEM_WB_atual.opcode != 0) || 
+                           (pipe->regMEM_WB_atual.opcode == 0 && pipe->regMEM_WB_atual.rd != 0);
 
-    // Ordem invertida: WB -> MEM -> EX -> ID -> IF
+    if (instrucao_valida && 
+       (pipe->regMEM_WB_atual.sinais.EscReg || 
+        pipe->regMEM_WB_atual.opcode == 8 ||   // beq
+        pipe->regMEM_WB_atual.opcode == 15 ||  // sw
+        pipe->regMEM_WB_atual.opcode == 2)) {  // j
+    
+        estatInst->total++;
+        
+        if (pipe->regMEM_WB_atual.opcode == 0) {
+            estatInst->tipoR++;
+            if (pipe->regMEM_WB_atual.sinais.ulaOp == 0) estatInst->add++;
+            else if (pipe->regMEM_WB_atual.sinais.ulaOp == 2) estatInst->sub++;
+            else if (pipe->regMEM_WB_atual.sinais.ulaOp == 4) estatInst->and++;
+            else if (pipe->regMEM_WB_atual.sinais.ulaOp == 5) estatInst->or++;
+        } else if (pipe->regMEM_WB_atual.opcode == 2) {
+            estatInst->tipoJ++;
+            estatInst->j++;
+        } else {
+            estatInst->tipoI++;
+            if (pipe->regMEM_WB_atual.opcode == 4) estatInst->addi++;
+            else if (pipe->regMEM_WB_atual.opcode == 8) estatInst->beq++;
+            else if (pipe->regMEM_WB_atual.opcode == 11) estatInst->lw++;
+            else if (pipe->regMEM_WB_atual.opcode == 15) estatInst->sw++;
+        }
+    }
+
+    // Executa os estágios normais
     Executa_WB(&pipe->regMEM_WB_atual, bReg, estatInst);
     Executa_MEM(&pipe->regEX_MEM_atual, &pipe->regMEM_WB_novo, memDados);
     Executa_EX(&pipe->regID_EX_atual, &pipe->regEX_MEM_novo);
     Executa_ID(&pipe->regID_EX_novo, &pipe->regIF_ID_atual, bReg);
 
-    int hazard = unidadeDetecHazards(&pipe->regIF_ID_atual, &pipe->regID_EX_atual, &pipe->regEX_MEM_atual);
-
-    if(hazard==1){
+    tipoHazard hazard = unidadeDetecHazards(&pipe->regIF_ID_atual, &pipe->regID_EX_atual, &pipe->regEX_MEM_atual);
+    
+    if(hazard == hazardDados) { 
         insereStall(&pipe->regID_EX_novo.sinais);
         pipe->regIF_ID_novo = pipe->regIF_ID_atual;
         estatInst->stalls++;
-        (*pc)--; // porque atualmente o pc está sendo incrementado sempre no do_if
+        (*pc)--;
     }
-    else if(hazard==2){
+    else if(hazard == hazardControle) { 
+        if (pipe->regID_EX_atual.sinais.jump == 1) {
+            *pc = pipe->regID_EX_atual.imm;
+        } else if (pipe->regEX_MEM_atual.sinais.branch == 1) {
+            *pc = pipe->regEX_MEM_atual.ulaSaida;
+        }
         insereFlush(pipe);
     }
 
+    // 3. BUSCA A PRÓXIMA INSTRUÇÃO
     Executa_IF(&pipe->regIF_ID_novo, memoria, pc);
-
+    
+    // 4. ATUALIZA OS VALORES DE "NOVO" PARA "ATUAL" PARA O PRÓXIMO CICLO
     atualiza_regs_pipeline(pipe);
+    
+    // 5. ATUALIZA CONTADORES DE CICLO E CPI
     estatInst->ciclos++;
-
-    print_pipeline_state(pipe, estatInst->ciclos);
+    if (estatInst->total > 0) {
+        estatInst->CPI = (float)estatInst->ciclos / estatInst->total;
+    } else {
+        estatInst->CPI = 0.0;
+    }
 }
 
 void atualiza_regs_pipeline(registradoresPipeline *pipe) {
@@ -265,20 +308,20 @@ void programCounter(int *pc, sinaisUC *sinais, instrucao *instrucao, int zero){
     // JUMP
     if(sinais->jump == 1){
         *pc = instrucao->addr;
-        printf("\nPC atual: %d.\n", *pc);
+        //printf("\nPC atual: %d.\n", *pc);
         return;
     }
 
     // BRANCH 
     if(sinais->branch == 1 && zero == 1){
         *pc = *pc + instrucao->imm + 1;
-        printf("\nPC atual: %d.\n", *pc);
+        //printf("\nPC atual: %d.\n", *pc);
         return;
     }
 
     // execução normal
     (*pc)++;
-    printf("\n[ PC+1 ]\nPC atual: %d.\n", *pc);
+    //printf("\n[ PC+1 ]\nPC atual: %d.\n", *pc);
 }
 // Decodificação
 void decodificaInst(instrucao *instrucao){
@@ -292,20 +335,20 @@ void decodificaInst(instrucao *instrucao){
         instrucao->rt = (instrucao->instrucao >> 6) & 0x7; // pega os 3 bits do rt
         instrucao->rd = (instrucao->instrucao >> 3) & 0x7; // pega os 3 bits do rd
         instrucao->funct = (instrucao->instrucao) & 0x7;
-        printf("\n[ Tipo R ] \n");
-        printf("opcode: %d\n", instrucao->opcode);
-        printf("rs: %d\n", instrucao->rs);
-        printf("rt: %d\n", instrucao->rt);
-        printf("rd: %d\n", instrucao->rd);
-        printf("funct: %d\n", instrucao->funct);
+        //printf("\n[ Tipo R ] \n");
+        //printf("opcode: %d\n", instrucao->opcode);
+        //printf("rs: %d\n", instrucao->rs);
+        //printf("rt: %d\n", instrucao->rt);
+        //printf("rd: %d\n", instrucao->rd);
+        //printf("funct: %d\n", instrucao->funct);
         break;
 
     case 2:
         instrucao->tipoInst = tipoJ;
         instrucao->addr = (instrucao->instrucao) &0xFF; // pega os 8 bits do adress
-        printf("\n[ Tipo J ]\n");
-        printf("opcode: %d\n", instrucao->opcode);
-        printf("address: %d\n", instrucao->addr);
+        //printf("\n[ Tipo J ]\n");
+        //printf("opcode: %d\n", instrucao->opcode);
+        //printf("address: %d\n", instrucao->addr);
         break;
 
     default:
@@ -314,11 +357,11 @@ void decodificaInst(instrucao *instrucao){
         instrucao->rt = (instrucao->instrucao >> 6) &0x7; // pega os 3 bits do rt
         instrucao->imm = (instrucao->instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
         instrucao->imm = extensorBit(instrucao->imm);
-        printf("\n[ Tipo I ] \n");
-        printf("opcode: %d\n", instrucao->opcode);
-        printf("rs: %d\n", instrucao->rs);
-        printf("rt: %d\n", instrucao->rt);
-        printf("imediato: %d\n", instrucao->imm);
+        //printf("\n[ Tipo I ] \n");
+        //printf("opcode: %d\n", instrucao->opcode);
+        //printf("rs: %d\n", instrucao->rs);
+        //printf("rt: %d\n", instrucao->rt);
+        //printf("imediato: %d\n", instrucao->imm);
     }
 }
 
@@ -414,18 +457,16 @@ void escreveRegistrador(int *reg, int8_t rd, int8_t valor, int EscReg){
     }
 }
 
-void imprimeBancoRegistradores(int *reg){
-    printf("________________________\n");
-    printf(" Banco de Registradores \n");
-    printf("________________________\n");
-    printf(" Registrador |   Valor  \n");
-    printf("________________________\n");
 
-    for(int i=0;i<8;i++){
-        printf("      %d      |     %d    \n",i, reg[i]);
-        printf("_____________|__________\n");
+void imprimeBancoRegistradores(int *reg){
+    clear();
+    attron(A_BOLD | COLOR_PAIR(2));
+    mvprintw((LINES-10)/2-1, (COLS-19)/2, "BANCO REGISTRADORES");
+    attroff(A_BOLD | COLOR_PAIR(2));
+    for(int i = 0; i < 8; i++) {
+        mvprintw((LINES-10)/2 + i, (COLS-6)/2, "$%d: %d", i, reg[i]);
     }
-    printf("\n");
+    getch();
 }
 
 int8_t ULA(int op1, int op2, int ulaOp, int *zero, int *overflow){
@@ -463,11 +504,11 @@ int8_t ULA(int op1, int op2, int ulaOp, int *zero, int *overflow){
             break;
 
         default:
-            printf("\nOperação da ULA inválida!\n");
+            //printf("\nOperação da ULA inválida!\n");
     }
     //FECHA SE FOR OVERFLOW
     if(*overflow == 1){
-    printf("\n OVERFLOW!\n");
+    //printf("\n OVERFLOW!\n");
     exit(1);
 }
 
@@ -489,7 +530,7 @@ void escreveMemDados(int *memDados, int endereco, int8_t valor) {
     if (endereco >= 0 && endereco < 256) {
         memDados[endereco] = valor;
     } else {
-        printf("\nErro ao escrever na memória.\n");
+        //printf("\nErro ao escrever na memória.\n");
     }
 }
 
@@ -527,6 +568,15 @@ void Executa_ID(ID_EX *ID_EX, IF_ID *IF_ID, int *bReg) {
 }
 
 void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM) {
+    if (ID_EX->opcode == 0 && ID_EX->rd == 0 && ID_EX->rs == 0 && ID_EX->rt == 0) {
+        EX_MEM->opcode = 0;
+        EX_MEM->rd = 0;
+        EX_MEM->ulaSaida = 0;
+        EX_MEM->sinais.EscReg = 0;
+        EX_MEM->sinais.branch = 0;
+        EX_MEM->sinais.jump = 0;
+        return;
+    }
 
     int op2;
     int zero;
@@ -551,6 +601,14 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM) {
 }
 
 void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
+    if (EX_MEM->opcode == 0 && EX_MEM->rd == 0) {
+        MEM_WB->opcode = 0;
+        MEM_WB->rd = 0;
+        MEM_WB->ulaSaida = 0;
+        MEM_WB->mem = 0;
+        MEM_WB->sinais.EscReg = 0;
+    return; // Encerra o estágio mais cedo pois é um NOP 
+}
 
     MEM_WB->opcode = EX_MEM->opcode;
     MEM_WB->rd = EX_MEM->rd;
@@ -566,30 +624,46 @@ void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
     }
 }
 
-void Executa_WB(MEM_WB *MEM_WB, int *bReg, estatInstrucoes *estatInst) { // Mudar "in"
+void Executa_WB(MEM_WB *MEM_WB, int *bReg, estatInstrucoes *estatInst) { 
     
-    printf("\n\n==================== WB =======================\n");
+    //printf("\n\n==================== WB =======================\n");
+
+    if (MEM_WB->rd == 0) {
+        bReg[0] = 0;
+        return;
+    }
     
     if(MEM_WB->sinais.EscReg == 1) {
         int8_t dadoFinal;
         
         if(MEM_WB->sinais.MemParaReg == 1){
             dadoFinal = MEM_WB->mem;
-            printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da memória)\n", dadoFinal);
+            //printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da memória)\n", dadoFinal);
         }else{
             dadoFinal = MEM_WB->ulaSaida;
-            printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da ULA)\n", dadoFinal);
+            //printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da ULA)\n", dadoFinal);
         }
 
         escreveRegistrador(bReg, MEM_WB->rd, dadoFinal, MEM_WB->sinais.EscReg);
-        printf("\n[ WB ] %d escrito no registrador $%d.\n", dadoFinal, MEM_WB->rd);
+        //pri("\n[ WB ] %d escrito no registrador $%d.\n", dadoFinal, MEM_WB->rd);
     }
     else{
-        printf("\nSem instrução\n");
+        //pri("\nSem instrução\n");
     }
-    printf("\n=============================================\n");
+    //pri("\n=============================================\n");
     
-    estatInst->total++;
+    if (MEM_WB->opcode == 0) {
+        estatInst->tipoR++;
+        estatInst->total++;
+    }
+    else if (MEM_WB->opcode == 2) { 
+        estatInst->tipoJ++;
+        estatInst->total++;
+    }
+    else if (MEM_WB->opcode == 4 || MEM_WB->opcode == 11 || MEM_WB->opcode == 15) {
+        estatInst->tipoI++;
+        estatInst->total++;
+    }
 }
 
 void insereStall(sinaisUC *sinais){
@@ -772,7 +846,7 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
 void salvaDAT(int *memDados){
     char nomeDAT[50]={0}, nome[20], extensao[] = ".dat", resposta;
 
-    printf("\nDigite o nome do arquivo que deseja salvar (.dat): ");
+    //printf("\nDigite o nome do arquivo que deseja salvar (.dat): ");
     fgets(nome, sizeof(nome),stdin);
     nome[strcspn(nome,"\n")]='\0';
     int indice=1;
@@ -782,7 +856,7 @@ void salvaDAT(int *memDados){
 
     // Verifica se o arquivo existe
     while (access(nomeDAT, F_OK) != -1) {
-        printf("\nJá existe um arquivo com o nome %s, deseja sobrescrever? (s/n): ", nomeDAT);
+        //printf("\nJá existe um arquivo com o nome %s, deseja sobrescrever? (s/n): ", nomeDAT);
         scanf(" %c", &resposta);
 
         if (resposta == 's' || resposta == 'S') {
@@ -791,14 +865,14 @@ void salvaDAT(int *memDados){
             snprintf(nomeDAT, sizeof(nomeDAT), "%s_%d%s", nome, indice, extensao);
             indice++;
         } else {
-            printf("\nOpção inválida. Tente novamente.\n");
+            //printf("\nOpção inválida. Tente novamente.\n");
         }
     }
 
     arquivo = fopen(nomeDAT,"w");
 
     if (arquivo == NULL) {
-        printf("\nErro ao criar arquivo\n");
+        //printf("\nErro ao criar arquivo\n");
         return;
     }
 
@@ -808,7 +882,7 @@ void salvaDAT(int *memDados){
 
     fclose(arquivo);
 
-    printf("\nArquivo '%s' salvo!\n",nomeDAT);
+    //printf("\nArquivo '%s' salvo!\n",nomeDAT);
 }
 
 void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc){
@@ -855,40 +929,40 @@ void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc){
 
 }
 
-
+/*
 void imprimeEstatistica(estatInstrucoes estatInst){
     estatInst.CPI = 0;
     if(estatInst.total > 0){
         estatInst.CPI = (float)estatInst.ciclos / (float)estatInst.total;
     }
 
-    printf("\n========================================\n");
-    printf("      Estatísticas do Simulador:\n");
-    printf("========================================\n");
+    //printf("\n========================================\n");
+    //printf("      Estatísticas do Simulador:\n");
+    //printf("========================================\n");
 
-    printf("\nTotal executadas: %d\n", estatInst.total);
-    printf("Ciclos: %d\n", estatInst.ciclos);
+    //printf("\nTotal executadas: %d\n", estatInst.total);
+    //printf("Ciclos: %d\n", estatInst.ciclos);
 
-    printf("CPI (Ciclos por Instrução): %.2f\n", estatInst.CPI);
-    printf("Stalls: %d\n", estatInst.stalls);
+    //printf("CPI (Ciclos por Instrução): %.2f\n", estatInst.CPI);
+    //printf("Stalls: %d\n", estatInst.stalls);
 
-    printf("\nEstatísticas de instruções\n");
-    printf("\nPor tipo:\n");
-    printf("Tipo R: %d\n", estatInst.tipoR);
-    printf("Tipo I: %d\n", estatInst.tipoI);
-    printf("Tipo J: %d\n", estatInst.tipoJ);
+    //printf("\nEstatísticas de instruções\n");
+    //printf("\nPor tipo:\n");
+    //printf("Tipo R: %d\n", estatInst.tipoR);
+    //printf("Tipo I: %d\n", estatInst.tipoI);
+    //printf("Tipo J: %d\n", estatInst.tipoJ);
 
-    printf("\nDetalhamento por instrução:\n");
-    printf("R -> add: %d | sub: %d | and: %d | or: %d\n",
+    //printf("\nDetalhamento por instrução:\n");
+    //printf("R -> add: %d | sub: %d | and: %d | or: %d\n",
            estatInst.add, estatInst.sub, estatInst.and, estatInst.or);
-    printf("I -> addi: %d | beq: %d | lw: %d | sw: %d\n",
+    //printf("I -> addi: %d | beq: %d | lw: %d | sw: %d\n",
            estatInst.addi, estatInst.beq, estatInst.lw, estatInst.sw);
-    printf("J -> j: %d\n", estatInst.j);
+    //printf("J -> j: %d\n", estatInst.j);
 
 
-    printf("========================================\n\n");
+    //printf("========================================\n\n");
 
-    /*  NCurse
+    NCurse
     clear();
     attron(COLOR_PAIR(1) | A_BOLD);
     mvprintw(1, 5, "+------------------------------------------------+");
@@ -928,100 +1002,177 @@ void imprimeEstatistica(estatInstrucoes estatInst){
 
     refresh();
     
-    getch();*/
+    getch();
+}
+*/
 
 
+void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstrucoes *estatInst, registradoresPipeline *pipe) {
+    Node *novoNode = (Node *)malloc(sizeof(Node));
+    if(novoNode == NULL) return;
+
+    novoNode->st.pc = pc;
+    novoNode->st.estat = *estatInst;
+    novoNode->st.pipe = *pipe;
+    memcpy(novoNode->st.memDados, memDados, 256 * sizeof(int));
+    memcpy(novoNode->st.bReg, bReg, 8 * sizeof(int));
+
+    novoNode->next = hist->topo;
+    hist->topo = novoNode;
 }
 
-void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstrucoes *estatInst){
-    if(hist->topo >= MAX_HIST) return;
+void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatInstrucoes *estatInst, registradoresPipeline *pipe) {
+    if(hist->topo == NULL) return; // Nenhuma instrução para voltar
 
-    estado *e = &hist->estados[hist->topo];
+    Node *temp = hist->topo;
+    hist->topo = temp->next;
 
-    e->pc = pc;
+    *pc = temp->st.pc;
+    *estatInst = temp->st.estat;
+    *pipe = temp->st.pipe;
+    memcpy(memDados, temp->st.memDados, 256 * sizeof(int));
+    memcpy(bReg, temp->st.bReg, 8 * sizeof(int));
 
-    for(int i=0;i<256;i++)
-        e->memDados[i] = memDados[i];
-
-    for(int i=0;i<8;i++)
-        e->bReg[i] = bReg[i];
-
-    e->estat = *estatInst; // <-- SALVA ESTATÍSTICAS
-
-    hist->topo++;
+    free(temp);
 }
 
-void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatInstrucoes *estatInst){
-    if(hist->topo <= 0){
-        printf("\nSem histórico!\n");
-        return;
+void liberaHistorico(historico *hist) {
+    while(hist->topo != NULL) {
+        Node *temp = hist->topo;
+        hist->topo = hist->topo->next;
+        free(temp);
     }
-
-    hist->topo--;
-
-    estado *e = &hist->estados[hist->topo];
-
-    *pc = e->pc;
-
-    for(int i=0;i<256;i++)
-        memDados[i] = e->memDados[i];
-
-    for(int i=0;i<8;i++)
-        bReg[i] = e->bReg[i];
-
-    *estatInst = e->estat; // <-- RESTAURA ESTATÍSTICAS
-
-    printf("\nVoltou uma instrução!\n");
-    printf("PC atual: %d.\n", *pc);
 }
 
 void imprimeInstrucao(instrucao *memoria, int pc) {
     if((memoria)[pc].decodificado==0){
-        decodifica(&memoria[pc]);
+        decodificaInst(&memoria[pc]);
     }
 
     switch(memoria[pc].opcode){
         case 0: // opcode = 0000
 
             if(memoria[pc].funct==0){
-                printf("add $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
+                //printf("add $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
             }
             else if((memoria)[pc].funct==2){
-                printf("sub $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
+                //printf("sub $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
             }
             else if((memoria)[pc].funct==4){
-                printf("and $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
+                //printf("and $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
             }
             else if((memoria)[pc].funct==5){
-                printf("or $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
+                //printf("or $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
             }
             break;
 
         case 2: // opcode = 0010 - J
-            int x=12;
-            printf("j %d%*s", (memoria)[pc].addr, x, "");
+            //printf("j %d%*s", (memoria)[pc].addr, x, "");
 
             break;
 
         case 4: // opcode = 0100 - Addi
-            printf("addi $%d, $%d, %d", (memoria)[pc].rt, (memoria)[pc].rs, (memoria)[pc].imm);
+            //printf("addi $%d, $%d, %d", (memoria)[pc].rt, (memoria)[pc].rs, (memoria)[pc].imm);
 
             break;
 
         case 8: // opcode = 1000 - BEQ
-            printf("beq $%d, $%d, %d", (memoria)[pc].rs, (memoria)[pc].rt, (memoria)[pc].imm);
+            //printf("beq $%d, $%d, %d", (memoria)[pc].rs, (memoria)[pc].rt, (memoria)[pc].imm);
 
             break;
 
         case 11: // opcode = 1011 - lw
-            printf("lw $%d, %d($%d)", (memoria)[pc].rt, (memoria)[pc].imm, (memoria)[pc].rs);
+            //printf("lw $%d, %d($%d)", (memoria)[pc].rt, (memoria)[pc].imm, (memoria)[pc].rs);
 
             break;
 
         case 15: // opcode = 1111 - sw
-            printf("sw $%d, %d($%d)", (memoria)[pc].rt, (memoria)[pc].imm, (memoria)[pc].rs);
+            //printf("sw $%d, %d($%d)", (memoria)[pc].rt, (memoria)[pc].imm, (memoria)[pc].rs);
 
             break;
+    }
+}
+
+void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *bReg, int pc, instrucao *memoria, int *memDados, historico *hist) {
+    int selecionado = 0;
+    int tecla;
+    char *opcoesMenu[] = { "Run Pipeline", "Step Pipeline", "Step Back", "Voltar Menu" };
+    int totalOpcoes = 4;
+
+    while(1) {
+        clear();
+        printBorda(linhaspainel, colunaspainel);
+
+        // Cabeçalho dos Registradores do Pipeline
+        attron(A_BOLD | COLOR_PAIR(1));
+        mvprintw(2, 3, "=== ESTADO DOS REGISTRADORES DO PIPELINE ===");
+        attroff(A_BOLD | COLOR_PAIR(1));
+
+        mvprintw(4, 3, "IF/ID  -> PC: %d | Inst: %04X (%s)", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.instrucao, pipe->regIF_ID_atual.inst.mem);
+        mvprintw(5, 3, "ID/EX  -> A: %d | B: %02d | Imm: %d | Opcode: %X | rs: %d rt: %d rd: %d", pipe->regID_EX_atual.A, pipe->regID_EX_atual.B, pipe->regID_EX_atual.imm, pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt, pipe->regID_EX_atual.rd);
+        mvprintw(6, 3, "EX/MEM -> UlaSaida: %d | B: %d | rd: %d", pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.B, pipe->regEX_MEM_atual.rd);
+        mvprintw(7, 3, "MEM/WB -> MemDado: %d | UlaSaida: %d | rd: %d", pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.ulaSaida, pipe->regMEM_WB_atual.rd);
+        mvprintw(8, 3, "PC Atual: %d", pc);
+
+        // Banco de Registradores ao lado direito
+        attron(A_BOLD | COLOR_PAIR(2));
+        mvprintw(2, colunaspainel - 30, "BANCO REGISTRADORES");
+        attroff(A_BOLD | COLOR_PAIR(2));
+        for(int i = 0; i < 8; i++) {
+            mvprintw(4 + i, colunaspainel - 30, "$%d: %d", i, bReg[i]);
+        }
+
+        // Estatísticas abaixo
+        attron(A_BOLD | COLOR_PAIR(3));
+        mvprintw(14, 3, "=== ESTATISTICAS ===");
+        attroff(A_BOLD | COLOR_PAIR(3));
+        if(estatInst->ciclos > 0) estatInst->CPI = (float)estatInst->ciclos / (estatInst->total > 0 ? estatInst->total : 1);
+        mvprintw(16, 3, " Ciclos: %d  |  Stalls: %d  |  Instrucoes WB: %d  |  CPI: %.2f", estatInst->ciclos, estatInst->stalls, estatInst->total, estatInst->CPI);
+        mvprintw(17, 3, "R-Type: %d (add: %d, sub: %d, and: %d, or: %d)", estatInst->tipoR, estatInst->add, estatInst->sub, estatInst->and, estatInst->or);
+        mvprintw(18, 3, "I-Type: %d (addi: %d, beq: %d, lw: %d, sw: %d) | J-Type: %d", estatInst->tipoI, estatInst->addi, estatInst->beq, estatInst->lw, estatInst->sw, estatInst->tipoJ);
+
+        // Menu Interativo abaixo
+        attron(A_BOLD | COLOR_PAIR(4));
+        mvprintw(21, 3, "=== OPCOES DE EXECUCAO ===");
+        attroff(A_BOLD | COLOR_PAIR(4));
+        for(int i = 0; i < totalOpcoes; i++) {
+            if(i == selecionado) {
+                attron(A_REVERSE | A_BOLD);
+            }
+            mvprintw(23, 3 + (i * 18), "[ %s ]", opcoesMenu[i]);
+            if(i == selecionado) {
+                attroff(A_REVERSE | A_BOLD);
+            }
+        }
+
+        refresh();
+        tecla = getch();
+
+        switch(tecla) {
+            case KEY_LEFT:
+                selecionado--;
+                if(selecionado < 0) selecionado = totalOpcoes - 1;
+                break;
+            case KEY_RIGHT:
+                selecionado++;
+                if(selecionado >= totalOpcoes) selecionado = 0;
+                break;
+            case 10: // Enter
+                if(selecionado == 0) { // Run
+                    run_pipeline(memoria, bReg, &pc, memDados, pipe, estatInst);
+                } 
+                else if(selecionado == 1) { // Step
+                    salvaEstado(hist, pc, memDados, bReg, estatInst, pipe);
+                    step_pipeline(memoria, bReg, &pc, memDados, pipe, estatInst);
+                } 
+                else if(selecionado == 2) { // Back
+                    voltaInstrucao(hist, &pc, memDados, bReg, estatInst, pipe);
+                } 
+                else if(selecionado == 3) { // Voltar
+                    return;
+                }
+                break;
+        }
     }
 }
 
@@ -1061,56 +1212,51 @@ int Verifica_Bolha(sinaisUC sinais) {
 
 // TODO: Ajustar essas impressões - ncurses
 void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
-    printf("\n========== Ciclo %d ==========\n", ciclo);
+    (void)ciclo;
+    //printf("\n========== Ciclo %d ==========\n", ciclo);
 
     int ocupados = 0;
 
     // IF
     if(pipe->regIF_ID_atual.inst.instrucao!=0) {
-        printf("IF : PC=%d opcode=%d\n", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.opcode);
+        //printf("IF : PC=%d opcode=%d\n", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.opcode);
         ocupados++;
     }
     else{
-        printf("Stall ou NOP\n");
+        //printf("Stall ou NOP\n");
     }
 
     // ID
     if(!Verifica_Bolha(pipe->regID_EX_atual.sinais)) {
-        printf("ID : opcode=%d rs=%d rt=%d rd=%d A=%d B=%d\n",
-            pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt,
-            pipe->regID_EX_atual.rd, pipe->regID_EX_atual.A, pipe->regID_EX_atual.B);
+        //printf("ID : opcode=%d rs=%d rt=%d rd=%d A=%d B=%d\n",pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt,pipe->regID_EX_atual.rd, pipe->regID_EX_atual.A, pipe->regID_EX_atual.B);
         ocupados++;
     }
     else{
-        printf("Stall ou NOP\n");
+        //printf("Stall ou NOP\n");
     }
 
     // EX
     if(!Verifica_Bolha(pipe->regEX_MEM_atual.sinais)) {
-        printf("EX : opcode=%d ulaSaida=%d rd=%d\n",
-            pipe->regEX_MEM_atual.opcode, pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.rd);
+        //printf("EX : opcode=%d ulaSaida=%d rd=%d\n",pipe->regEX_MEM_atual.opcode, pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.rd);
         ocupados++;
     }
     else{
-        printf("Stall ou NOP\n");
+        //printf("Stall ou NOP\n");
     }
 
     // MEM/WB - junta os dois pq WB só escreve o que veio de MEM
     if(!Verifica_Bolha(pipe->regMEM_WB_atual.sinais)) {
-        printf("MEM: opcode=%d ulaSaida=%d mem=%d rd=%d\n",
-            pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.ulaSaida,
-            pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.rd);
-        printf("WB : opcode=%d vai escrever rd=%d\n",
-            pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.rd);
+        //printf("MEM: opcode=%d ulaSaida=%d mem=%d rd=%d\n",pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.ulaSaida,pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.rd);
+        //printf("WB : opcode=%d vai escrever rd=%d\n",pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.rd);
         ocupados++;
     }
     else{
-        printf("Stall ou NOP\n");
-        printf("Stall ou NOP\n");
+        //printf("Stall ou NOP\n");
+        //printf("Stall ou NOP\n");
     }
 
-    printf("Instruções no pipeline: %d/4\n", ocupados); // 4 instruções?
-    printf("============================\n\n");
+    //printf("Instruções no pipeline: %d/4\n", ocupados); // 4 instruções?
+    //printf("============================\n\n");
 }
 
 void printBorda(int linhaspainel, int colunaspainel){
@@ -1126,171 +1272,3 @@ void printBorda(int linhaspainel, int colunaspainel){
     }
 
 }
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-/*
-void step(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDados, estatInstrucoes *estatInst){
-
-    if(*pc>=256 || memoria[*pc].instrucao==0){
-        printf("\nFim das instruções!\n");
-        if(memoria[*pc].instrucao==0)
-            printf("\nMotivo: NOP (instrução 0000000000000000)\n");
-        else
-            printf("\nMotivo: Uso total da memória.\n");
-        return;
-    }
-
-    printf("\nPC = %d | Memória = %s\n", *pc, memoria[*pc].mem);
-
-    // Decodifica
-    decodificaInst(&memoria[*pc]);
-
-    memoria[*pc].decodificado = 1;
-    // Contabiliza estatística
-    contabilizaEstat(memoria, estatInst, *pc);
-
-    // Controle
-    unidadeControle(&memoria[*pc], sinais);
-
-    // Executa
-    int zero = executaInstrucao(&memoria[*pc], sinais, bReg, memDados);
-
-    //PC
-    programCounter(pc, sinais, &memoria[*pc], zero);
-
-    (*estatInst).total++;
-}
-
-int executaInstrucao(instrucao* instrucao, sinaisUC *sinais, int *bReg, int *memDados){
-    int8_t  operador1, operador2, UlaResultado=0, regDst, dadoFinal=0, valorSW;
-    int zero=0, overflow = 0;
-    lerRegistradores(bReg, (*instrucao).rs, (*instrucao).rt, &operador1, &operador2);
-
-    valorSW = operador2;
-
-    if((*sinais).UlaFonte==1){
-        operador2=(*instrucao).imm;
-    }
-
-    UlaResultado = ULA(operador1, operador2, (*sinais).ulaOp, &zero, &overflow);
-
-    if((*sinais).EscMem==1){
-        escreveMemDados(memDados, (int)UlaResultado, valorSW);
-        printf("\nSW: Valor %d guardado no endereço %d\n", valorSW, UlaResultado);
-    }
-
-    if((*sinais).MemParaReg==1){
-        dadoFinal = UlaResultado;
-    }else if((*sinais).EscReg==1){
-        dadoFinal = retornaMemoria(memDados, (uint8_t)UlaResultado);
-        printf("\nLW: Valor %d lido do endereço %d\n", dadoFinal, UlaResultado);
-    }
-
-    if((*sinais).RegDst==1){
-        regDst = (*instrucao).rd;
-    }else{
-        regDst = (*instrucao).rt;
-    }
-
-    if((*sinais).EscReg==1){
-        escreveRegistrador(bReg, regDst, dadoFinal, (*sinais).EscReg);
-        printf("\nRegistrador a ser escrito: $%d com o valor %d\n", regDst, dadoFinal);
-    }
-
-    if((*sinais).branch==1 && zero == 1){
-        printf("\nPulo condicional detectado\n");
-    }
-    return zero;
-}
-
-void run(instrucao *memoria, int *bReg, sinaisUC *sinais, int *pc, int *memDados, estatInstrucoes *estatInst){
-
-    while(*pc < 256 && memoria[*pc].instrucao!=0){
-
-        printf("\nPC = %d | Memória = %s\n", *pc, memoria[*pc].mem);
-
-        // Decodifica
-        decodificaInst(&memoria[*pc]);
-
-        memoria[*pc].decodificado = 1;
-        // Contabiliza estatística
-        contabilizaEstat(memoria, estatInst, *pc);
-
-        // Controle
-        unidadeControle(&memoria[*pc], sinais);
-
-        // Executa
-        int zero = executaInstrucao(&memoria[*pc], sinais, bReg, memDados);
-
-        programCounter(pc, sinais, &memoria[*pc], zero);
-
-        (*estatInst).total++;
-    }
-
-    if(*pc>=256 || memoria[*pc].instrucao==0){
-        printf("\nFim das instruções!\n");
-        if(memoria[*pc].instrucao==0)
-            printf("\nMotivo: HALT (instrução 0000000000000000)\n");
-        else
-            printf("\nMotivo: Uso total da memória.\n");
-        return;
-    }
-}
-
-void carregaID_EX(instrucao *inst, int *bReg, registradoresPipeline *pipe){
-
-    sinaisUC sinais;
-
-    decodificaInst(inst); //talvez tirar esse decodifica daqui para melhor representação do simulador
-
-    unidadeControle(inst, &sinais); //essa chamada da UC aqui também
-
-    pipe->regID_EX.sinais = sinais;
-
-    pipe->regID_EX.opcode = inst->opcode;
-    pipe->regID_EX.rs = inst->rs;
-    pipe->regID_EX.rt = inst->rt;
-    pipe->regID_EX.rd = inst->rd;
-    pipe->regID_EX.funct = inst->funct;
-    pipe->regID_EX.imm = inst->imm;
-
-    pipe->regID_EX.A = bReg[inst->rs];
-    pipe->regID_EX.B = bReg[inst->rt];
-}
-
-void carregaEX_MEM(registradoresPipeline *pipe, int8_t resultadoULA){
-
-    pipe->regEX_MEM.sinais = pipe->regID_EX.sinais;
-
-    pipe->regEX_MEM.opcode = pipe->regID_EX.opcode;
-
-    pipe->regEX_MEM.ulaSaida = resultadoULA;
-
-    pipe->regEX_MEM.B = pipe->regID_EX.B;
-
-    if(pipe->regID_EX.sinais.RegDst){
-        pipe->regEX_MEM.rd = pipe->regID_EX.rd;
-    }else{
-        pipe->regEX_MEM.rd = pipe->regID_EX.rt;
-    }
-}
-
-void carregaMEM_WB(registradoresPipeline *pipe, int8_t dadoMemoria){
-
-    pipe->regMEM_WB.sinais = pipe->regEX_MEM.sinais;
-
-    pipe->regMEM_WB.opcode = pipe->regEX_MEM.opcode;
-
-    pipe->regMEM_WB.rd = pipe->regEX_MEM.rd;
-
-    pipe->regMEM_WB.ulaSaida = pipe->regEX_MEM.ulaSaida;
-
-    pipe->regMEM_WB.mem = dadoMemoria;
-
-}
-
-*/
