@@ -459,17 +459,14 @@ void escreveRegistrador(int *reg, int8_t rd, int8_t valor, int EscReg){
 
 
 void imprimeBancoRegistradores(int *reg){
-    printf("________________________\n");
-    printf(" Banco de Registradores \n");
-    printf("________________________\n");
-    printf(" Registrador |   Valor  \n");
-    printf("________________________\n");
-
-    for(int i=0;i<8;i++){
-        printf("      %d      |     %d    \n",i, reg[i]);
-        printf("_____________|__________\n");
+    clear();
+    attron(A_BOLD | COLOR_PAIR(2));
+    mvprintw((LINES-10)/2-1, (COLS-19)/2, "BANCO REGISTRADORES");
+    attroff(A_BOLD | COLOR_PAIR(2));
+    for(int i = 0; i < 8; i++) {
+        mvprintw((LINES-10)/2 + i, (COLS-6)/2, "$%d: %d", i, reg[i]);
     }
-    printf("\n");
+    getch();
 }
 
 int8_t ULA(int op1, int op2, int ulaOp, int *zero, int *overflow){
@@ -578,8 +575,8 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM) {
         EX_MEM->sinais.EscReg = 0;
         EX_MEM->sinais.branch = 0;
         EX_MEM->sinais.jump = 0;
-    return;
-}
+        return;
+    }
 
     int op2;
     int zero;
@@ -608,9 +605,9 @@ void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
         MEM_WB->opcode = 0;
         MEM_WB->rd = 0;
         MEM_WB->ulaSaida = 0;
-        MEM_WB->mem = 0; // Nota: o nome no seu struct.h é 'mem' e não 'memDado'
+        MEM_WB->mem = 0;
         MEM_WB->sinais.EscReg = 0;
-    return; // Encerra o estágio mais cedo pois é um NOP puro
+    return; // Encerra o estágio mais cedo pois é um NOP 
 }
 
     MEM_WB->opcode = EX_MEM->opcode;
