@@ -47,16 +47,16 @@ int main(){
     int tecla;
 
     char *opcoes[] = {
-        "Carregar Memoria de Instrucoes (.mem)",
-        "Carregar Memoria de Dados (.dat)",
-        "Imprimir memorias (instrucoes e dados)",
+        "Carregar Memória de Instruções (.mem)",
+        "Carregar Memória de Dados (.dat)",
+        "Imprimir Memórias (instruções e dados)",
         "Imprimir Banco de Registradores",
-        "Imprimir todo o Simulador",
+        "Imprimir Todo o Simulador",
         "Salvar .asm",
         "Salvar .dat",
-        "Executa programa (run)",
-        "Executa uma instrucao (step)",
-        "Volta uma instrucao (back)",
+        "Executar Programa (run)",
+        "Executar um Estágio (step)",
+        "Voltar um Estágio (back)",
         "Sair do Programa"
     };
 

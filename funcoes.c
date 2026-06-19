@@ -106,7 +106,7 @@ void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, in
     int tecla;
 
     char *opcoes[] = {
-        "Memoria de Instrucoes",
+        "Memoria de Instruções",
         "Memoria de Dados"
     };
 
@@ -447,7 +447,7 @@ void escreveRegistrador(int *reg, int8_t rd, int8_t valor, int EscReg){
 void imprimeBancoRegistradores(int *reg){
     clear();
     attron(A_BOLD | COLOR_PAIR(2));
-    mvprintw((LINES-10)/2-1, (COLS-19)/2, "BANCO REGISTRADORES");
+    mvprintw((LINES-10)/2-1, (COLS-19)/2, "BANCO DE REGISTRADORES");
     attroff(A_BOLD | COLOR_PAIR(2));
     for(int i = 0; i < 8; i++) {
         mvprintw((LINES-10)/2 + i, (COLS-6)/2, "$%d: %d", i, reg[i]);
@@ -1102,7 +1102,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         //mvprintw(8, 3, "PC Atual: %d", pc);
 
         attron(A_BOLD | COLOR_PAIR(2));
-        mvprintw(linhaspainel/2 - 4, colunaspainel - 30, "BANCO DE REGISTRADORES");
+        mvprintw(linhaspainel/2 - 5, colunaspainel - 30, "BANCO DE REGISTRADORES");
         attroff(A_BOLD | COLOR_PAIR(2));
         
         for(int i = 0; i < 8; i++) {
@@ -1110,7 +1110,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         }
 
         attron(A_BOLD | COLOR_PAIR(3));
-        mvprintw(linhaspainel/2 - 4, 3, "=== ESTATISTICAS ===");
+        mvprintw(linhaspainel/2 - 5, 20, "ESTATÍSTICAS");
         attroff(A_BOLD | COLOR_PAIR(3));
 
         if(estatInst->ciclos > 0){
@@ -1122,7 +1122,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(linhaspainel/2 - 1, 3, "I-Type: %d (addi: %d, beq: %d, lw: %d, sw: %d) | J-Type: %d", estatInst->tipoI, estatInst->addi, estatInst->beq, estatInst->lw, estatInst->sw, estatInst->tipoJ);
 
         attron(A_BOLD | COLOR_PAIR(4));
-        mvprintw(linhaspainel - 4, 3, " OPCOES DE EXECUCAO ");
+        mvprintw(linhaspainel - 4, 3, " OPÇÕES DE EXECUÇÃO ");
         attroff(A_BOLD | COLOR_PAIR(4));
         
         for(int i = 0; i < totalOpcoes; i++) {
