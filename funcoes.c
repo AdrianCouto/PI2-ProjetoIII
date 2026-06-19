@@ -1102,7 +1102,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         //mvprintw(8, 3, "PC Atual: %d", pc);
 
         attron(A_BOLD | COLOR_PAIR(2));
-        mvprintw(linhaspainel/2 - 4, colunaspainel - 23, "BANCO REGISTRADORES");
+        mvprintw(linhaspainel/2 - 4, colunaspainel - 30, "BANCO DE REGISTRADORES");
         attroff(A_BOLD | COLOR_PAIR(2));
         
         for(int i = 0; i < 8; i++) {
@@ -1110,12 +1110,16 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         }
 
         attron(A_BOLD | COLOR_PAIR(3));
-        mvprintw(14, 3, "=== ESTATISTICAS ===");
+        mvprintw(linhaspainel/2 - 4, 3, "=== ESTATISTICAS ===");
         attroff(A_BOLD | COLOR_PAIR(3));
-        if(estatInst->ciclos > 0) estatInst->CPI = (float)estatInst->ciclos / (estatInst->total > 0 ? estatInst->total : 1);
-        mvprintw(16, 3, " Ciclos: %d  |  Stalls: %d  |  Instrucoes WB: %d  |  CPI: %.2f", estatInst->ciclos, estatInst->stalls, estatInst->total, estatInst->CPI);
-        mvprintw(17, 3, "R-Type: %d (add: %d, sub: %d, and: %d, or: %d)", estatInst->tipoR, estatInst->add, estatInst->sub, estatInst->and, estatInst->or);
-        mvprintw(18, 3, "I-Type: %d (addi: %d, beq: %d, lw: %d, sw: %d) | J-Type: %d", estatInst->tipoI, estatInst->addi, estatInst->beq, estatInst->lw, estatInst->sw, estatInst->tipoJ);
+
+        if(estatInst->ciclos > 0){
+            estatInst->CPI = (float)estatInst->ciclos / (estatInst->total > 0 ? estatInst->total : 1);
+        } 
+        
+        mvprintw(linhaspainel/2 - 3, 3, "Ciclos: %d  |  Stalls: %d  |  CPI: %.2f", estatInst->ciclos, estatInst->stalls, estatInst->CPI);
+        mvprintw(linhaspainel/2 - 2, 3, "R-Type: %d (add: %d, sub: %d, and: %d, or: %d)", estatInst->tipoR, estatInst->add, estatInst->sub, estatInst->and, estatInst->or);
+        mvprintw(linhaspainel/2 - 1, 3, "I-Type: %d (addi: %d, beq: %d, lw: %d, sw: %d) | J-Type: %d", estatInst->tipoI, estatInst->addi, estatInst->beq, estatInst->lw, estatInst->sw, estatInst->tipoJ);
 
         attron(A_BOLD | COLOR_PAIR(4));
         mvprintw(linhaspainel - 4, 3, " OPCOES DE EXECUCAO ");
