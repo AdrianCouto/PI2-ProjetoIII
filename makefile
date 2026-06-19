@@ -8,12 +8,12 @@ help:
 compile:
 	gcc -c -Wall -Wextra -g funcoes.c -o funcoes.o
 	gcc -c -Wall -Wextra -g hazards.c -o hazards.o
-	gcc -Wall -Wextra -g mainminimips.c funcoes.o hazards.o -lncurses -o exec
+	gcc -Wall -Wextra -g mainminimips.c funcoes.o hazards.o -lncursesw -o exec
 
 run:
 	gcc -c -Wall -Wextra -g funcoes.c -o funcoes.o
 	gcc -c -Wall -Wextra -g hazards.c -o hazards.o
-	gcc -Wall -Wextra -g mainminimips.c funcoes.o hazards.o -lncurses -o exec
+	gcc -Wall -Wextra -g mainminimips.c funcoes.o hazards.o -lncursesw -o exec
 	./exec
 
 rm:
