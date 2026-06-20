@@ -21,11 +21,18 @@ tipoHazard unidadeDetecHazards(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM){
 
 tipoHazard detectaHazardDados(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM){
 
-    int escEX  = (ID_EX->sinais.EscReg == 1)  && (ID_EX->rd != 0);
+    uint8_t destinoEX;
+
+    if(ID_EX->sinais.RegDst)
+        destinoEX = ID_EX->rd;
+    else
+        destinoEX = ID_EX->rt;
+
     int escMEM = (EX_MEM->sinais.EscReg == 1) && (EX_MEM->rd != 0);
 
-    int hazard_EX = escEX && (ID_EX->rd == IF_ID->inst.rs || ID_EX->rd == IF_ID->inst.rt);
-    int hazard_MEM = escMEM && (EX_MEM->rd == IF_ID->inst.rs || EX_MEM->rd == IF_ID->inst.rt);
+int hazard_EX = ID_EX->sinais.EscReg && destinoEX != 0 && (destinoEX == IF_ID->inst.rs || destinoEX == IF_ID->inst.rt);
+    
+     int hazard_MEM = escMEM && (EX_MEM->rd == IF_ID->inst.rs || EX_MEM->rd == IF_ID->inst.rt);
 
     if(hazard_EX || hazard_MEM){
         return 1;

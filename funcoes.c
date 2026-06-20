@@ -214,29 +214,28 @@ int8_t extensorBit(int8_t imm){
 
 // RUN
 
-void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst)
+void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst)
 {
-    int acabou = 0;
-
-    while(!acabou)
+    while (1)
     {
-        step_pipeline(memoria, bReg, pc, memDados, pipe, estatInst);
-        
-        // TODO: É necessário arrumar a condição de finalização do programa
-        // Atualmente fica em loop pois Verifica_Bolha considera escReg = 1 como uma instrução útil
-        if(pipe->regIF_ID_atual.inst.instrucao == 0 && Verifica_Bolha(pipe->regID_EX_atual.sinais) && Verifica_Bolha(pipe->regEX_MEM_atual.sinais) && Verifica_Bolha(pipe->regMEM_WB_atual.sinais) && (*pc >= 256 || memoria[*pc].instrucao == 0) && (*pc >= 256 ||memoria[*pc].instrucao == 0)){  
-            acabou = 1;
+        step_pipeline(hist, memoria, bReg, pc, memDados, pipe, estatInst);
+
+        if ((*pc >= 256 || memoria[*pc].instrucao == 0) &&
+            pipe->regIF_ID_atual.inst.instrucao == 0 &&
+            pipe->regID_EX_atual.opcode == 0 &&
+            pipe->regEX_MEM_atual.opcode == 0 &&
+            pipe->regMEM_WB_atual.opcode == 0)
+        {
+            break;
         }
     }
 }
 
-void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {    
+void step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {    
+    salvaEstado(hist, *pc, memDados, bReg, estatInst, pipe);
+
     
-    // [CORREÇÃO EFETIVA]: Uma instrução só conta nas estatísticas se:
-    // 1. O opcode for diferente de 0 (Instruções Tipo-I e Tipo-J)
-    // 2. OU se o opcode for 0 (Tipo-R), mas o registrador destino 'rd' for diferente de 0 (evita contar NOPs/Bolhas)
-    int instrucao_valida = (pipe->regMEM_WB_atual.opcode != 0) || 
-                           (pipe->regMEM_WB_atual.opcode == 0 && pipe->regMEM_WB_atual.rd != 0);
+    int instrucao_valida = (pipe->regMEM_WB_atual.opcode != 0) || (pipe->regMEM_WB_atual.opcode == 0 && pipe->regMEM_WB_atual.rd != 0);
 
     if (instrucao_valida && 
        (pipe->regMEM_WB_atual.sinais.EscReg || 
@@ -273,18 +272,17 @@ void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, regist
     tipoHazard hazard = unidadeDetecHazards(&pipe->regIF_ID_atual, &pipe->regID_EX_atual, &pipe->regEX_MEM_atual);
     
     if(hazard == hazardDados) { 
-        insereStall(&pipe->regID_EX_novo.sinais);
-        pipe->regIF_ID_novo = pipe->regIF_ID_atual;
-        estatInst->stalls++;
-        (*pc)--;
+        insereStall(pipe, estatInst);
     }
-    else if(hazard == hazardControle) { 
-        if (pipe->regID_EX_atual.sinais.jump == 1) {
-            *pc = pipe->regID_EX_atual.imm;
-        } else if (pipe->regEX_MEM_atual.sinais.branch == 1) {
-            *pc = pipe->regEX_MEM_atual.ulaSaida;
-        }
-        insereFlush(pipe);
+    else if(hazard == hazardControle)
+    {
+    if(pipe->regID_EX_atual.sinais.jump)
+        *pc = pipe->regID_EX_atual.imm;
+
+    else if(pipe->regEX_MEM_atual.sinais.branch)
+        *pc = pipe->regEX_MEM_atual.ulaSaida;
+
+    insereFlush(pipe);
     }
 
     // 3. BUSCA A PRÓXIMA INSTRUÇÃO
@@ -302,11 +300,25 @@ void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, regist
     }
 }
 
-void atualiza_regs_pipeline(registradoresPipeline *pipe) {
-    pipe->regIF_ID_atual = pipe->regIF_ID_novo;
-    pipe->regID_EX_atual = pipe->regID_EX_novo;
+void atualiza_regs_pipeline(registradoresPipeline *pipe)
+{
+    if(!pipe->ctrl.stallIF)
+        pipe->regIF_ID_atual = pipe->regIF_ID_novo;
+
+    if(pipe->ctrl.flushIF)
+        memset(&pipe->regIF_ID_atual, 0, sizeof(IF_ID));
+    if(pipe->ctrl.flushID)
+        memset(&pipe->regID_EX_atual, 0, sizeof(ID_EX));
+    else
+        pipe->regID_EX_atual = pipe->regID_EX_novo;
+
     pipe->regEX_MEM_atual = pipe->regEX_MEM_novo;
     pipe->regMEM_WB_atual = pipe->regMEM_WB_novo;
+
+    pipe->ctrl.flushIF = 0;
+    pipe->ctrl.flushID = 0;
+    pipe->ctrl.stallIF = 0;
+    pipe->ctrl.stallID = 0;
 }
 
 // Decodificação
@@ -525,32 +537,40 @@ int8_t retornaMemoria(int *memDados, uint8_t enderecoULA) {
 }
 
 void Executa_IF(IF_ID *IF_ID, instrucao *memoria, int *pc) {
-    
-    if(*pc >= 256 || memoria[*pc].instrucao == 0) { // verifica se ainda tem inst
-        IF_ID->inst.instrucao = 0; // chegou no fim insere inst vazia 
+    if(*pc >= 256 || memoria[*pc].instrucao == 0){
+        memset(IF_ID,0,sizeof(*IF_ID));
         return;
     }
+
     IF_ID->pc = *pc;
-    IF_ID->inst = memoria[*pc]; // guarda a instrução
-   (*pc)++;
+    IF_ID->inst = memoria[*pc];
+
+    (*pc)++;
 
 }
 
 void Executa_ID(ID_EX *ID_EX, IF_ID *IF_ID, int *bReg) {
 
-    // decodifica normal
+    if(IF_ID->inst.instrucao == 0){
+        memset(ID_EX, 0, sizeof(*ID_EX));
+        return;
+    }
+
     decodificaInst(&IF_ID->inst);
     unidadeControle(&IF_ID->inst, &ID_EX->sinais);
 
-    ID_EX->rs = IF_ID->inst.rs; 
-    ID_EX->rt = IF_ID->inst.rt; 
+    ID_EX->rs = IF_ID->inst.rs;
+    ID_EX->rt = IF_ID->inst.rt;
     ID_EX->rd = IF_ID->inst.rd;
-    ID_EX->imm = IF_ID->inst.imm; 
-    ID_EX->funct = IF_ID->inst.funct; 
+    ID_EX->imm = IF_ID->inst.imm;
+    ID_EX->funct = IF_ID->inst.funct;
     ID_EX->opcode = IF_ID->inst.opcode;
 
-    lerRegistradores(bReg, IF_ID->inst.rs, IF_ID->inst.rt, &ID_EX->A, &ID_EX->B);
-
+    lerRegistradores(bReg,
+                     IF_ID->inst.rs,
+                     IF_ID->inst.rt,
+                     &ID_EX->A,
+                     &ID_EX->B);
 }
 
 void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM) {
@@ -574,6 +594,8 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM) {
         op2 = ID_EX->B;
 
     EX_MEM->ulaSaida = ULA(ID_EX->A, op2, ID_EX->sinais.ulaOp, &zero, &overflow);
+
+    EX_MEM->zero = zero;
 
     EX_MEM->opcode = ID_EX->opcode;
     EX_MEM->B = ID_EX->B;
@@ -636,21 +658,28 @@ void Executa_WB(MEM_WB *MEM_WB, int *bReg) {
 
 }
 
-void insereStall(sinaisUC *sinais){
-    sinais->EscMem = 0;
-    sinais->EscReg = 0;
-    sinais->IncPC = 0;
-    sinais->branch = 0;
-    sinais->MemParaReg = 0;
-    sinais->RegDst = 0;
-    sinais->UlaFonte = 0;
-    sinais->ulaOp = 0;
-    sinais->jump = 0;
+void insereStall(registradoresPipeline *pipe, estatInstrucoes *estat)
+{
+    pipe->ctrl.stallIF = 1;
+    pipe->ctrl.stallID = 1;
+
+    // mantém a instrução em IF/ID
+    pipe->regIF_ID_novo = pipe->regIF_ID_atual;
+
+    // injeta uma bolha em ID/EX
+    memset(&pipe->regID_EX_novo, 0, sizeof(ID_EX));
+
+    estat->stalls++;
 }
 
-void insereFlush(registradoresPipeline *pipe){
-    insereStall(&pipe->regID_EX_novo.sinais);
-    pipe->regIF_ID_novo.inst.instrucao = 0;
+void insereFlush(registradoresPipeline *pipe) {
+
+    memset(&pipe->regIF_ID_novo, 0, sizeof(IF_ID));
+    memset(&pipe->regID_EX_novo, 0, sizeof(ID_EX));
+}
+
+void ajustarPC(int *pc, int novoPC) {
+    *pc = novoPC;
 }
 
 void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linhas)
@@ -895,84 +924,6 @@ void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc){
 
 }
 
-/*
-void imprimeEstatistica(estatInstrucoes estatInst){
-    estatInst.CPI = 0;
-    if(estatInst.total > 0){
-        estatInst.CPI = (float)estatInst.ciclos / (float)estatInst.total;
-    }
-
-    //printf("\n========================================\n");
-    //printf("      Estatísticas do Simulador:\n");
-    //printf("========================================\n");
-
-    //printf("\nTotal executadas: %d\n", estatInst.total);
-    //printf("Ciclos: %d\n", estatInst.ciclos);
-
-    //printf("CPI (Ciclos por Instrução): %.2f\n", estatInst.CPI);
-    //printf("Stalls: %d\n", estatInst.stalls);
-
-    //printf("\nEstatísticas de instruções\n");
-    //printf("\nPor tipo:\n");
-    //printf("Tipo R: %d\n", estatInst.tipoR);
-    //printf("Tipo I: %d\n", estatInst.tipoI);
-    //printf("Tipo J: %d\n", estatInst.tipoJ);
-
-    //printf("\nDetalhamento por instrução:\n");
-    //printf("R -> add: %d | sub: %d | and: %d | or: %d\n",
-           estatInst.add, estatInst.sub, estatInst.and, estatInst.or);
-    //printf("I -> addi: %d | beq: %d | lw: %d | sw: %d\n",
-           estatInst.addi, estatInst.beq, estatInst.lw, estatInst.sw);
-    //printf("J -> j: %d\n", estatInst.j);
-
-
-    //printf("========================================\n\n");
-
-    NCurse
-    clear();
-    attron(COLOR_PAIR(1) | A_BOLD);
-    mvprintw(1, 5, "+------------------------------------------------+");
-    mvprintw(2, 5, "|           ESTATISTICAS DO PIPELINE             |");
-    mvprintw(3, 5, "+------------------------------------------------+");
-    attroff(COLOR_PAIR(1) | A_BOLD);
-
-    attron(COLOR_PAIR(2) | A_BOLD);
-    mvprintw(5, 5, "[ Métricas Globais ]");
-    attroff(COLOR_PAIR(2) | A_BOLD);
-
-    mvprintw(7, 5, "Total executadas: %4d", estatInst.total);
-    mvprintw(8, 5, "Ciclos: %4d", estatInst.ciclos);
-    mvprintw(9, 5, "CPI (Ciclos por Instrucao): %4.2f", estatInst.CPI);
-    mvprintw(10, 5, "Stalls: %4d", estatInst.stalls);
-
-    attron(COLOR_PAIR(2) | A_BOLD);
-    mvprintw(12, 5, "[ Divisao por Tipo ]");
-    attroff(COLOR_PAIR(2) | A_BOLD);
-
-    mvprintw(14, 5, "Tipo R: %3d | Tipo I: %3d | Tipo J: %3d", estatInst.tipoR, estatInst.tipoI, estatInst.tipoJ);
-
-
-    attron(COLOR_PAIR(2) | A_BOLD);
-    mvprintw(16, 5, "[ Detalhamento das Instrucoes ]");
-    attroff(COLOR_PAIR(2) | A_BOLD);    
-
-    mvprintw(18, 5, "ADD: %3d | SUB: %3d | AND: %3d | OR: %3d", estatInst.add, estatInst.sub, estatInst.and, estatInst.or);
-    mvprintw(19, 5, "ADDI: %3d | BEQ: %3d | LW: %3d | SW: %3d", estatInst.addi, estatInst.beq, estatInst.lw, estatInst.sw);
-    mvprintw(20, 5, "J: %3d", estatInst.j);
-
-    attron(COLOR_PAIR(1) | A_BOLD);
-    mvprintw(22, 5, "+------------------------------------------------+");
-    mvprintw(23, 5, "|                [ Voltar ]                      |");
-    mvprintw(24, 5, "+------------------------------------------------+");
-    attroff(COLOR_PAIR(1) | A_BOLD);
-
-    refresh();
-    
-    getch();
-}
-*/
-
-
 void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstrucoes *estatInst, registradoresPipeline *pipe) {
     Node *novoNode = (Node *)malloc(sizeof(Node));
     if(novoNode == NULL) return;
@@ -1002,6 +953,7 @@ void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatIns
     free(temp);
 }
 
+
 void liberaHistorico(historico *hist) {
     while(hist->topo != NULL) {
         Node *temp = hist->topo;
@@ -1010,55 +962,92 @@ void liberaHistorico(historico *hist) {
     }
 }
 
-void imprimeInstrucao(instrucao *memoria, int pc) {
-    if((memoria)[pc].decodificado==0){
+char *imprimeInstrucao(instrucao *memoria, int pc) {
+
+    static char buffer[64];
+
+    if(memoria[pc].decodificado == 0){
         decodificaInst(&memoria[pc]);
     }
 
     switch(memoria[pc].opcode){
-        case 0: // opcode = 0000
 
-            if(memoria[pc].funct==0){
-                //mvprintfw("add $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
+        case 0:
+            switch(memoria[pc].funct){
+                case 0:
+                    sprintf(buffer, "add $%d, $%d, $%d",
+                            memoria[pc].rd,
+                            memoria[pc].rs,
+                            memoria[pc].rt);
+                    break;
+
+                case 2:
+                    sprintf(buffer, "sub $%d, $%d, $%d",
+                            memoria[pc].rd,
+                            memoria[pc].rs,
+                            memoria[pc].rt);
+                    break;
+
+                case 4:
+                    sprintf(buffer, "and $%d, $%d, $%d",
+                            memoria[pc].rd,
+                            memoria[pc].rs,
+                            memoria[pc].rt);
+                    break;
+
+                case 5:
+                    sprintf(buffer, "or $%d, $%d, $%d",
+                            memoria[pc].rd,
+                            memoria[pc].rs,
+                            memoria[pc].rt);
+                    break;
+
+                default:
+                    sprintf(buffer, "R-type");
             }
-            else if((memoria)[pc].funct==2){
-                //printf("sub $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
-            }
-            else if((memoria)[pc].funct==4){
-                //printf("and $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
-            }
-            else if((memoria)[pc].funct==5){
-                //printf("or $%d, $%d, $%d", (memoria)[pc].rd, (memoria)[pc].rs, (memoria)[pc].rt);
-            }
             break;
 
-        case 2: // opcode = 0010 - J
-            //printf("j %d%*s", (memoria)[pc].addr, x, "");
-
+        case 2:
+            sprintf(buffer, "j %d", memoria[pc].addr);
             break;
 
-        case 4: // opcode = 0100 - Addi
-            //printf("addi $%d, $%d, %d", (memoria)[pc].rt, (memoria)[pc].rs, (memoria)[pc].imm);
-
+        case 4:
+            sprintf(buffer, "addi $%d, $%d, %d",
+                    memoria[pc].rt,
+                    memoria[pc].rs,
+                    memoria[pc].imm);
             break;
 
-        case 8: // opcode = 1000 - BEQ
-            //printf("beq $%d, $%d, %d", (memoria)[pc].rs, (memoria)[pc].rt, (memoria)[pc].imm);
-
+        case 8:
+            sprintf(buffer, "beq $%d, $%d, %d",
+                    memoria[pc].rs,
+                    memoria[pc].rt,
+                    memoria[pc].imm);
             break;
 
-        case 11: // opcode = 1011 - lw
-            //printf("lw $%d, %d($%d)", (memoria)[pc].rt, (memoria)[pc].imm, (memoria)[pc].rs);
-
+        case 11:
+            sprintf(buffer, "lw $%d, %d($%d)",
+                    memoria[pc].rt,
+                    memoria[pc].imm,
+                    memoria[pc].rs);
             break;
 
-        case 15: // opcode = 1111 - sw
-            //printf("sw $%d, %d($%d)", (memoria)[pc].rt, (memoria)[pc].imm, (memoria)[pc].rs);
+        case 15:
+            sprintf(buffer, "sw $%d, %d($%d)",
+                    memoria[pc].rt,
+                    memoria[pc].imm,
+                    memoria[pc].rs);
+            break;
 
+        default:
+            sprintf(buffer, "NOP");
             break;
     }
+
+    return buffer;
 }
 
+//IMPRIMIR TODO SIMULADOR
 void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *bReg, int pc, instrucao *memoria, int *memDados, historico *hist) {
     int selecionado = 0;
     int tecla;
@@ -1071,7 +1060,6 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
 
         attron(A_BOLD | COLOR_PAIR(1));
         mvprintw(0, colunaspainel/2 - 11, " SIMULADOR DE PIPELINE ");
-        attroff(A_BOLD | COLOR_PAIR(1));
 
         for(int i = 1; i < colunaspainel - 1; i++){
                 mvprintw(linhaspainel/3, i, "_");
@@ -1086,40 +1074,80 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
             mvprintw(j - linhaspainel/3 + 2, (colunaspainel/5) * 4, "|");
 
         }
+        attroff(A_BOLD | COLOR_PAIR(1));
+
+        attron(A_BOLD | COLOR_PAIR(2));
+        mvprintw(1, (colunaspainel/5 - 19), "IF");
+        mvprintw(3, (colunaspainel/5 - 25),"PC : %d",pipe->regIF_ID_atual.pc);
+        mvprintw(4, (colunaspainel/5 - 25),"HEX: %04X",pipe->regIF_ID_atual.inst.instrucao);
+        mvprintw(5, (colunaspainel/5 - 25),"ASM: %s",imprimeInstrucao(memoria, pc));
+        mvprintw(6, (colunaspainel/5 - 25),"%s",pipe->regIF_ID_atual.inst.mem);
+        attroff(A_BOLD | COLOR_PAIR(2));
 
         attron(A_BOLD | COLOR_PAIR(3));
-        mvprintw(1, colunaspainel/5 - 19, "IF");
         mvprintw(1, (colunaspainel/5 * 2) - 19, "ID");
-        mvprintw(1, (colunaspainel/5 * 3) - 19, "EX");
-        mvprintw(1, (colunaspainel/5 * 4) - 19, "MEM");
-        mvprintw(1, (colunaspainel/5 * 5) - 19, "WB");
+        mvprintw(3, (colunaspainel/5 * 2) - 21,"Instr : %s",
+        nomeInstrucao(pipe->regID_EX_atual.opcode,pipe->regID_EX_atual.funct));
+        mvprintw(4, (colunaspainel/5 * 2) - 21,"rs : %d",pipe->regID_EX_atual.rs);
+        mvprintw(5, (colunaspainel/5 * 2) - 21,"rt : %d",pipe->regID_EX_atual.rt);
+        mvprintw(6, (colunaspainel/5 * 2) - 21,"rd : %d",pipe->regID_EX_atual.rd);
+        mvprintw(7, (colunaspainel/5 * 2) - 21,"A  : %d",pipe->regID_EX_atual.A);
+        mvprintw(8, (colunaspainel/5 * 2) - 21,"B  : %d",pipe->regID_EX_atual.B);
+        mvprintw(9, (colunaspainel/5 * 2) - 21,"Imm: %d",pipe->regID_EX_atual.imm);
+        mvprintw(10, (colunaspainel/5 * 2) - 21,"Fun: %d",pipe->regID_EX_atual.funct);
         attroff(A_BOLD | COLOR_PAIR(3));
+
+        attron(A_BOLD | COLOR_PAIR(4));
+        mvprintw(1, (colunaspainel/5 * 3) - 19, "EX");
+        mvprintw(3, (colunaspainel/5 * 3) - 22,"ULA : %d",pipe->regEX_MEM_atual.ulaSaida);
+        mvprintw(4, (colunaspainel/5 * 3) - 22,"B   : %d",pipe->regEX_MEM_atual.B);
+        mvprintw(5, (colunaspainel/5 * 3) - 22,"RD  : %d",pipe->regEX_MEM_atual.rd);
+        mvprintw(6, (colunaspainel/5 * 3) - 22,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
+        mvprintw(7, (colunaspainel/5 * 3) - 22,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
+        mvprintw(8, (colunaspainel/5 * 3) - 22,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
+        attroff(A_BOLD | COLOR_PAIR(4));
+
+        attron(A_BOLD | COLOR_PAIR(5));
+        mvprintw(1, (colunaspainel/5 * 4) - 19, "MEM");
+        mvprintw(3, (colunaspainel/5 * 4) - 22,"ULA : %d",pipe->regMEM_WB_atual.ulaSaida);
+        mvprintw(4, (colunaspainel/5 * 4) - 22,"MEM : %d",pipe->regMEM_WB_atual.mem);
+        mvprintw(5, (colunaspainel/5 * 4) - 22,"RD  : %d",pipe->regMEM_WB_atual.rd);
+        mvprintw(6, (colunaspainel/5 * 4) - 22,"EscMem : %d", pipe->regMEM_WB_atual.sinais.EscMem);
+        mvprintw(7, (colunaspainel/5 * 4) - 22,"MemReg : %d", pipe->regMEM_WB_atual.sinais.MemParaReg);
+        attroff(A_BOLD | COLOR_PAIR(5));
+
+        attron(A_BOLD | COLOR_PAIR(6));
+        mvprintw(1, (colunaspainel/5 * 5) - 19, "WB");
+        mvprintw(3, (colunaspainel/5 * 5) - 22,"Destino : $%d", pipe->regMEM_WB_novo.rd);
+        mvprintw(4, (colunaspainel/5 * 5) - 22,"Valor   : %d", pipe->regMEM_WB_novo.sinais.MemParaReg ? pipe->regMEM_WB_novo.mem : pipe->regMEM_WB_novo.ulaSaida);
+        mvprintw(5, (colunaspainel/5 * 5) - 22,"EscReg : %d", pipe->regMEM_WB_novo.sinais.EscReg);
+        attroff(A_BOLD | COLOR_PAIR(6));
+
         
-        //  -> PC: %d | Inst: %04X (%s)", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.instrucao, pipe->regIF_ID_atual.inst.mem);
-        //mvprintw(5, 3, "ID/EX  -> A: %d | B: %02d | Imm: %d | Opcode: %X | rs: %d rt: %d rd: %d", pipe->regID_EX_atual.A, pipe->regID_EX_atual.B, pipe->regID_EX_atual.imm, pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt, pipe->regID_EX_atual.rd);
-        //mvprintw(6, 3, "EX/MEM -> UlaSaida: %d | B: %d | rd: %d", pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.B, pipe->regEX_MEM_atual.rd);
-        //mvprintw(7, 3, "MEM/WB -> MemDado: %d | UlaSaida: %d | rd: %d", pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.ulaSaida, pipe->regMEM_WB_atual.rd);
-        //mvprintw(8, 3, "PC Atual: %d", pc);
 
         attron(A_BOLD | COLOR_PAIR(2));
         mvprintw(linhaspainel/2 - 5, colunaspainel - 30, "BANCO DE REGISTRADORES");
-        attroff(A_BOLD | COLOR_PAIR(2));
         
         for(int i = 0; i < 8; i++) {
             mvprintw((linhaspainel/2) - 2 + i, colunaspainel - 23, "$%d: %d", i, bReg[i]);
         }
 
-        attron(A_BOLD | COLOR_PAIR(3));
-        mvprintw(linhaspainel/2 - 5, 20, "ESTATÍSTICAS");
-        attroff(A_BOLD | COLOR_PAIR(3));
+        attroff(A_BOLD | COLOR_PAIR(2));
 
-        if(estatInst->ciclos > 0){
-            estatInst->CPI = (float)estatInst->ciclos / (estatInst->total > 0 ? estatInst->total : 1);
-        } 
-        
-        mvprintw(linhaspainel/2 - 3, 3, "Ciclos: %d  |  Stalls: %d  |  CPI: %.2f", estatInst->ciclos, estatInst->stalls, estatInst->CPI);
-        mvprintw(linhaspainel/2 - 2, 3, "R-Type: %d (add: %d, sub: %d, and: %d, or: %d)", estatInst->tipoR, estatInst->add, estatInst->sub, estatInst->and, estatInst->or);
-        mvprintw(linhaspainel/2 - 1, 3, "I-Type: %d (addi: %d, beq: %d, lw: %d, sw: %d) | J-Type: %d", estatInst->tipoI, estatInst->addi, estatInst->beq, estatInst->lw, estatInst->sw, estatInst->tipoJ);
+        attron(A_BOLD | COLOR_PAIR(3));
+        mvprintw(linhaspainel/2 - 4, 61, "ESTATÍSTICAS");
+
+        mvprintw(linhaspainel/2 - 2, 61,"Ciclos : %d",estatInst->ciclos);
+        mvprintw(linhaspainel/2 - 1, 61,"Instr  : %d",estatInst->total);
+        mvprintw(linhaspainel/2 - 0, 61,"Stalls : %d",estatInst->stalls);
+        mvprintw(linhaspainel/2 + 1, 61,"CPI    : %.2f",estatInst->CPI);
+        mvprintw(linhaspainel/2 + 2, 61,"R : %d",estatInst->tipoR);
+        mvprintw(linhaspainel/2 + 3, 61,"I : %d",estatInst->tipoI);
+        mvprintw(linhaspainel/2 + 4, 61,"J : %d",estatInst->tipoJ);
+        mvprintw(linhaspainel/2 + 5, 61,"ADD:%d SUB:%d",estatInst->add,estatInst->sub);
+        mvprintw(linhaspainel/2 + 6, 61,"LW:%d SW:%d",estatInst->lw,estatInst->sw);
+
+        attroff(A_BOLD | COLOR_PAIR(3));
 
         attron(A_BOLD | COLOR_PAIR(4));
         mvprintw(linhaspainel - 4, 3, " OPÇÕES DE EXECUÇÃO ");
@@ -1151,11 +1179,10 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
                 break;
             case 10: // Enter
                 if(selecionado == 0) { // Run
-                    run_pipeline(memoria, bReg, &pc, memDados, pipe, estatInst);
-                } 
+                    run_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);
+                }
                 else if(selecionado == 1) { // Step
-                    salvaEstado(hist, pc, memDados, bReg, estatInst, pipe);
-                    step_pipeline(memoria, bReg, &pc, memDados, pipe, estatInst);
+                    step_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);
                 } 
                 else if(selecionado == 2) { // Back
                     voltaInstrucao(hist, &pc, memDados, bReg, estatInst, pipe);
@@ -1166,6 +1193,75 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
                 break;
         }
     }
+}
+
+void desenhaQuadro(int y, int x, int h, int w, char *titulo){
+
+    mvhline(y, x+1, ACS_HLINE, w-2);
+    mvhline(y+h-1, x+1, ACS_HLINE, w-2);
+
+    mvvline(y+1,x,ACS_VLINE,h-2);
+    mvvline(y+1,x+w-1,ACS_VLINE,h-2);
+
+    mvaddch(y,x,ACS_ULCORNER);
+    mvaddch(y,x+w-1,ACS_URCORNER);
+    mvaddch(y+h-1,x,ACS_LLCORNER);
+    mvaddch(y+h-1,x+w-1,ACS_LRCORNER);
+
+    attron(A_BOLD);
+
+    mvprintw(y,x+2,"%s",titulo);
+
+    attroff(A_BOLD);
+}
+
+char *nomeInstrucao(uint8_t opcode, uint8_t funct){
+
+    if(opcode==0){
+
+        switch(funct){
+
+            case 0:return "ADD";
+            case 2:return "SUB";
+            case 4:return "AND";
+            case 5:return "OR";
+
+            default:return "R";
+        }
+    }
+
+    switch(opcode){
+
+        case 2:return "J";
+
+        case 4:return "ADDI";
+
+        case 8:return "BEQ";
+
+        case 11:return "LW";
+
+        case 15:return "SW";
+
+        default:return "NOP";
+    }
+
+}
+
+char *nomeULA(uint8_t op){
+
+    switch(op){
+
+        case 0:return "ADD";
+
+        case 1:return "SUB";
+
+        case 2:return "AND";
+
+        case 3:return "OR";
+
+        default:return "--";
+    }
+
 }
 
 void decodifica(instrucao *instrucao){
@@ -1195,11 +1291,11 @@ void decodifica(instrucao *instrucao){
     }
 }
 
-int Verifica_Bolha(sinaisUC sinais) {
-    if ((sinais.EscReg || sinais.EscMem || sinais.branch || sinais.jump)) {
-        return 0; // Tem algum sinal ativo, então não é bolha
-    }
-    return 1; // Tudo zero, É uma bolha
+int Verifica_Bolha(sinaisUC sinais){
+    return !(sinais.EscReg ||
+             sinais.EscMem ||
+             sinais.branch ||
+             sinais.jump);
 }
 
 // TODO: Ajustar essas impressões - ncurses

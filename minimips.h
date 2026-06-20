@@ -87,6 +87,14 @@ typedef struct MEM_WB {
 } MEM_WB;
 
 typedef struct {
+    int flushIF;
+    int flushID;
+    int stallIF;
+    int stallID;
+} controlePipeline;
+
+typedef struct {
+    controlePipeline ctrl;
     IF_ID regIF_ID_atual, regIF_ID_novo;
     ID_EX regID_EX_atual, regID_EX_novo;
     EX_MEM regEX_MEM_atual, regEX_MEM_novo;
@@ -117,8 +125,8 @@ void salvaEstado(historico *hist, int pc, int *memDados, int *bReg, estatInstruc
 void voltaInstrucao(historico *hist, int *pc, int *memDados, int *bReg, estatInstrucoes *estatInst, registradoresPipeline *pipe);
 void liberaHistorico(historico *hist);
 
-void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *bReg, int pc, instrucao *memoria, int *memDados, historico *hist);
 void imprimeBancoRegistradores(int *reg);
+char *imprimeInstrucao(instrucao *memoria, int pc);
 
 int contaLinhas(char *arq);
 int lerMem(int colunaspainel, int linhaspainel, char *arq, instrucao **memoria, int linhas);
@@ -127,8 +135,8 @@ void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, in
 int *inicializaBReg();
 int *inicializaMemDados();
 
-void step_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
-void run_pipeline(instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
+void step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
+void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
 void atualiza_regs_pipeline(registradoresPipeline *pipe);
 
 void Executa_IF(IF_ID *IF_ID, instrucao *memoria, int *pc);
@@ -137,17 +145,23 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM);
 void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB, int *memDados);
 void Executa_WB(MEM_WB *MEM_WB, int *bReg);
 
-void insereStall(sinaisUC *sinais);
+void insereStall(registradoresPipeline *pipe, estatInstrucoes *estat);
 void insereFlush(registradoresPipeline *pipe);
 void decodificaInst(instrucao *instrucao);
 void unidadeControle(instrucao *instrucao, sinaisUC *sinais);
 int8_t ULA(int op1, int op2, int ulaOp, int *zero, int *overflow);
 int8_t extensorBit(int8_t imm);
 int Verifica_Bolha(sinaisUC sinais);
+void ajustarPC(int *pc, int novoPC);
 
 void printBorda(int linhas, int colunas);
 void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linhas);
 void salvaDAT(int *memDados);
+
+//IMPRIMIR TODO SIMULADOR
+void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *bReg, int pc, instrucao *memoria, int *memDados, historico *hist);
+char *nomeInstrucao(uint8_t opcode, uint8_t funct);
+char *nomeULA(uint8_t ulaOp);
 
 #include "hazards.h"
 
