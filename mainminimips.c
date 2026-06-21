@@ -16,6 +16,8 @@ static void iniciaNcurses(void){
     init_pair(2, COLOR_YELLOW, -1);
     init_pair(3, COLOR_GREEN, -1);
     init_pair(4, COLOR_RED, -1);
+    init_pair(5, COLOR_BLUE, -1);
+    init_pair(6, COLOR_MAGENTA, -1);
 
     cbreak();
     noecho();
@@ -213,14 +215,13 @@ int main(){
 
             case 7:
                 endwin();
-                run_pipeline(memoria, bReg, &pc, memDados, &pipe, &estatInst);
+                run_pipeline(&hist, memoria, bReg, &pc, memDados, &pipe, &estatInst);
                 iniciaNcurses();
                 break;
 
             case 8:
                 endwin();
-                salvaEstado(&hist, pc, memDados, bReg, &estatInst, &pipe);
-                step_pipeline(memoria, bReg, &pc, memDados, &pipe, &estatInst);
+                step_pipeline(&hist, memoria, bReg, &pc, memDados, &pipe, &estatInst);
                 iniciaNcurses();
                 break;
 
@@ -232,12 +233,20 @@ int main(){
 
             case 10:
                 endwin();
+
                 liberaHistorico(&hist);
-                if (bReg)     free(bReg);
-                if (memDados) free(memDados);
-                if (memoria)  free(memoria);
+
+                free(bReg);
+                bReg = NULL;
+
+                free(memDados);
+                memDados = NULL;
+
+                free(memoria);
+                memoria = NULL;
+
                 printf("\nSaindo do programa...\n");
-                exit(0);
+                return 0;
                     
             default:
                 break;
