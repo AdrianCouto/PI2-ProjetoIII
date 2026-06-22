@@ -1061,31 +1061,91 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         attron(A_BOLD | COLOR_PAIR(1));
         mvprintw(0, colunaspainel/2 - 11, " SIMULADOR DE PIPELINE ");
 
-        for(int i = 1; i < colunaspainel - 1; i++){
-                mvprintw(linhaspainel/3, i, "_");
-                mvprintw(linhaspainel/1.5, i, "_");
-                mvprintw(linhaspainel - 4, i, "_");
-        }
+        mvhline(1, 2, ACS_HLINE, colunaspainel - 4);// primeira linha
+        
+        mvhline(linhaspainel / 3, 2, ACS_HLINE, colunaspainel - 4);// segunda linha
+        mvhline(linhaspainel / 3 + 1, 2, ACS_HLINE, colunaspainel - 4);
 
-        for(int j = 1; j < linhaspainel - 1; j++){
-            mvprintw(j/3 + 1, colunaspainel/5, "|");
-            mvprintw(j/3 + 1, (colunaspainel/5) * 2, "|");
-            mvprintw(j/3 + 1, (colunaspainel/5) * 3, "|");
-            mvprintw(j - linhaspainel/3 + 2, (colunaspainel/5) * 4, "|");
+        mvhline((2 * linhaspainel)/3 + 1, 2, ACS_HLINE, colunaspainel - 4);//terceira linha
+        mvhline((linhaspainel/3) * 2, 2, ACS_HLINE, colunaspainel - 4);
+        
+        mvhline(linhaspainel - 4, 2, ACS_HLINE, (colunaspainel - (colunaspainel/5)) - 4);// quarta linha
+        mvhline(linhaspainel - 3, 2, ACS_HLINE, (colunaspainel - (colunaspainel/5)) - 4);
+        
 
-        }
+        
+        mvvline(1, 2, ACS_VLINE, linhaspainel - 2);//pimeira coluna
+        mvvline(1, colunaspainel / 5 - 1, ACS_VLINE, linhaspainel/3 - 1);
+        
+        mvvline(1, colunaspainel / 5, ACS_VLINE, linhaspainel/3);//segunda coluna
+        mvvline(1, (colunaspainel / 5)*2, ACS_VLINE, linhaspainel/3);
+        mvvline(1, (colunaspainel / 5)*2 - 1, ACS_VLINE, linhaspainel/3);
+        
+        mvvline(1, (colunaspainel / 5)*3, ACS_VLINE, linhaspainel/3);//terceira coluna
+        mvvline(1, (colunaspainel / 5)*3 - 1, ACS_VLINE, linhaspainel/3);
+
+        mvvline(1, (colunaspainel / 5)*4, ACS_VLINE, linhaspainel/3);//quarta coluna 
+        mvvline(1, (colunaspainel / 5)*4 - 1, ACS_VLINE, linhaspainel/3);
+
+        mvvline(1, colunaspainel - 3, ACS_VLINE, linhaspainel - 2);//quinta  coluna
+        
+        mvaddch(linhaspainel/3, (colunaspainel/5)*2, ACS_BTEE);
+        mvaddch(linhaspainel/3, (colunaspainel/5)*3, ACS_BTEE);
+        mvaddch(linhaspainel/3, (colunaspainel/5)*4, ACS_PLUS);
+
+        mvaddch((2*linhaspainel)/3, colunaspainel/5, ACS_PLUS);
+        mvaddch((2*linhaspainel)/3, (colunaspainel/5)*2, ACS_PLUS);
+        mvaddch((2*linhaspainel)/3, (colunaspainel/5)*3, ACS_PLUS);
+        mvaddch((2*linhaspainel)/3, (colunaspainel/5)*4, ACS_PLUS);
+        
+        //cantos IF
+        mvaddch(1, 2, ACS_ULCORNER);
+        mvaddch(linhaspainel/3, 2, ACS_LLCORNER);
+        mvaddch(linhaspainel/3, colunaspainel/5, ACS_LLCORNER);
+        mvaddch(1, colunaspainel/5 - 1, ACS_URCORNER);
+        
+        //cantos ID
+        mvaddch(1, colunaspainel/5,ACS_ULCORNER);
+        mvaddch(linhaspainel/3, colunaspainel/5 - 1, ACS_LRCORNER);
+        mvaddch(linhaspainel/3, (colunaspainel/5) * 2 - 1, ACS_LRCORNER);
+        mvaddch(1, ((colunaspainel/5) * 2) - 1, ACS_URCORNER);
+
+        //cantos EX
+        mvaddch(1, (colunaspainel/5) * 2,ACS_ULCORNER);
+        mvaddch(linhaspainel/3, (colunaspainel/5) * 2, ACS_LLCORNER);
+        mvaddch(1, (colunaspainel/5) * 3 - 1, ACS_URCORNER);
+        mvaddch(linhaspainel/3, (colunaspainel/5) * 3 - 1, ACS_LRCORNER);
+
+        //cantos MEM
+        mvaddch(1, (colunaspainel/5) * 3,ACS_ULCORNER);
+        mvaddch(linhaspainel/3, (colunaspainel/5) * 3, ACS_LLCORNER);
+        mvaddch(1, (colunaspainel/5) * 4 - 1, ACS_URCORNER);
+        mvaddch(linhaspainel/3, (colunaspainel/5) * 4 - 1, ACS_LRCORNER);
+
+        //cantos WB
+        mvaddch(1, (colunaspainel/5) * 4,ACS_ULCORNER);
+        mvaddch(linhaspainel/3, (colunaspainel/5) * 4, ACS_LLCORNER);
+        mvaddch(1, colunaspainel - 3, ACS_URCORNER);
+        mvaddch(linhaspainel/3, colunaspainel - 3, ACS_LRCORNER);
+
+        //cantos estatisticas
+        mvaddch(linhaspainel / 3 + 1, 2,ACS_ULCORNER);
+        mvaddch((2 * linhaspainel)/3 + 1, 2, ACS_LLCORNER);
+        mvaddch(linhaspainel/3 + 1, colunaspainel - 3, ACS_URCORNER);
+        
+
         attroff(A_BOLD | COLOR_PAIR(1));
 
         attron(A_BOLD | COLOR_PAIR(2));
-        mvprintw(1, (colunaspainel/5 - 19), "IF");
-        mvprintw(3, (colunaspainel/5 - 25),"PC : %d",pipe->regIF_ID_atual.pc);
+        mvprintw(1, (colunaspainel/5) - colunaspainel/10 - 2, "  IF  ");
+        mvprintw(3, (colunaspainel/5) / 2,"PC : %d",pipe->regIF_ID_atual.pc);
         mvprintw(4, (colunaspainel/5 - 25),"HEX: %04X",pipe->regIF_ID_atual.inst.instrucao);
         mvprintw(5, (colunaspainel/5 - 25),"ASM: %s",imprimeInstrucao(memoria, pc));
         mvprintw(6, (colunaspainel/5 - 25),"%s",pipe->regIF_ID_atual.inst.mem);
         attroff(A_BOLD | COLOR_PAIR(2));
 
         attron(A_BOLD | COLOR_PAIR(3));
-        mvprintw(1, (colunaspainel/5 * 2) - 19, "ID");
+        mvprintw(1, (colunaspainel/5 * 2) - colunaspainel/10 - 3, "  ID  ");
         mvprintw(3, (colunaspainel/5 * 2) - 21,"Instr : %s",
         nomeInstrucao(pipe->regID_EX_atual.opcode,pipe->regID_EX_atual.funct));
         mvprintw(4, (colunaspainel/5 * 2) - 21,"rs : %d",pipe->regID_EX_atual.rs);
@@ -1098,7 +1158,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         attroff(A_BOLD | COLOR_PAIR(3));
 
         attron(A_BOLD | COLOR_PAIR(4));
-        mvprintw(1, (colunaspainel/5 * 3) - 19, "EX");
+        mvprintw(1, (colunaspainel/5 * 3) - colunaspainel/10 - 3, "  EX  ");
         mvprintw(3, (colunaspainel/5 * 3) - 22,"ULA : %d",pipe->regEX_MEM_atual.ulaSaida);
         mvprintw(4, (colunaspainel/5 * 3) - 22,"B   : %d",pipe->regEX_MEM_atual.B);
         mvprintw(5, (colunaspainel/5 * 3) - 22,"RD  : %d",pipe->regEX_MEM_atual.rd);
@@ -1108,7 +1168,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         attroff(A_BOLD | COLOR_PAIR(4));
 
         attron(A_BOLD | COLOR_PAIR(5));
-        mvprintw(1, (colunaspainel/5 * 4) - 19, "MEM");
+        mvprintw(1, (colunaspainel/5 * 4) - colunaspainel/10 - 4, "  MEM  ");
         mvprintw(3, (colunaspainel/5 * 4) - 22,"ULA : %d",pipe->regMEM_WB_atual.ulaSaida);
         mvprintw(4, (colunaspainel/5 * 4) - 22,"MEM : %d",pipe->regMEM_WB_atual.mem);
         mvprintw(5, (colunaspainel/5 * 4) - 22,"RD  : %d",pipe->regMEM_WB_atual.rd);
@@ -1117,7 +1177,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         attroff(A_BOLD | COLOR_PAIR(5));
 
         attron(A_BOLD | COLOR_PAIR(6));
-        mvprintw(1, (colunaspainel/5 * 5) - 19, "WB");
+        mvprintw(1, (colunaspainel/5 * 5) - colunaspainel/10 - 4, "  WB  ");
         mvprintw(3, (colunaspainel/5 * 5) - 22,"Destino : $%d", pipe->regMEM_WB_novo.rd);
         mvprintw(4, (colunaspainel/5 * 5) - 22,"Valor   : %d", pipe->regMEM_WB_novo.sinais.MemParaReg ? pipe->regMEM_WB_novo.mem : pipe->regMEM_WB_novo.ulaSaida);
         mvprintw(5, (colunaspainel/5 * 5) - 22,"EscReg : %d", pipe->regMEM_WB_novo.sinais.EscReg);
@@ -1194,6 +1254,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         }
     }
 }
+
 
 void desenhaQuadro(int y, int x, int h, int w, char *titulo){
 
@@ -1349,14 +1410,21 @@ void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
 
 void printBorda(int linhaspainel, int colunaspainel){
 
-    for(int i = 0; i < linhaspainel; i++) {
-        mvprintw(i, 0, "|");
-        mvprintw(i, colunaspainel - 1, "|");
-    }
+    attron(A_BOLD | COLOR_PAIR(4));
 
-    for(int j = 0; j < colunaspainel; j++) {
-        mvprintw(0, j, "=");
-        mvprintw(linhaspainel - 1, j, "=");
-    }
+    // Linhas horizontais
+    mvhline(0, 1, ACS_HLINE, colunaspainel - 2);
+    mvhline(linhaspainel - 1, 1, ACS_HLINE, colunaspainel - 2);
 
+    // Linhas verticais
+    mvvline(1, 0, ACS_VLINE, linhaspainel - 2);
+    mvvline(1, colunaspainel - 1, ACS_VLINE, linhaspainel - 2);
+
+    // Cantos
+    mvaddch(0, 0, ACS_ULCORNER);
+    mvaddch(0, colunaspainel - 1, ACS_URCORNER);
+    mvaddch(linhaspainel - 1, 0, ACS_LLCORNER);
+    mvaddch(linhaspainel - 1, colunaspainel - 1, ACS_LRCORNER);
+
+    attroff(A_BOLD | COLOR_PAIR(4));
 }
