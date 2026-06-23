@@ -141,7 +141,7 @@ void atualiza_regs_pipeline(registradoresPipeline *pipe);
 
 void Executa_IF(IF_ID *IF_ID, instrucao *memoria, int *pc);
 void Executa_ID(ID_EX *ID_EX, IF_ID *IF_ID, int *bReg);
-void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM);
+void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB_atual);
 void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB, int *memDados);
 void Executa_WB(MEM_WB *MEM_WB, int *bReg);
 
@@ -153,6 +153,7 @@ int8_t ULA(int op1, int op2, int ulaOp, int *zero, int *overflow);
 int8_t extensorBit(int8_t imm);
 int Verifica_Bolha(sinaisUC sinais);
 void ajustarPC(int *pc, int novoPC);
+void forwardingUnit(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB, uint8_t *forwardA, uint8_t *forwardB);
 
 void printBorda(int linhas, int colunas);
 void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linhas);
@@ -162,6 +163,8 @@ void salvaDAT(int *memDados);
 void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *bReg, int pc, instrucao *memoria, int *memDados, historico *hist);
 char *nomeInstrucao(uint8_t opcode, uint8_t funct);
 char *nomeULA(uint8_t ulaOp);
+
+
 
 #include "hazards.h"
 
