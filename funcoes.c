@@ -231,7 +231,7 @@ void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *
     }
 }
 
-void step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {    
+int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {    
     salvaEstado(hist, *pc, memDados, bReg, estatInst, pipe);
 
     
@@ -298,6 +298,8 @@ void step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int 
     } else {
         estatInst->CPI = 0.0;
     }
+
+    return hazard;
 }
 
 void atualiza_regs_pipeline(registradoresPipeline *pipe)
@@ -771,19 +773,18 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
                         selecionado = 0;
                     break;
 
-                case 10:          // Enter no Linux/Unix
-                case KEY_ENTER:   // Enter do teclado numérico
-                    confirmou = 1; // Usuário tomou uma decisão
+                case 10:       
+                case KEY_ENTER:   
+                    confirmou = 1;
                     break;
             }
         }
 
-        // Processa a decisão do usuário após ele apertar ENTER
         if(selecionado == 0){
-            /* Sobrescrever: sai do loop "while(access...)" e vai direto para a criação */
+ 
             break; 
         } else {
-            /* Não sobrescrever: gera um novo nome e o "while" testará se ele existe */
+
             snprintf(nomeASM, sizeof(nomeASM), "%s_%d%s", nome, indice++, extensao);
         }
     }
@@ -1054,270 +1055,24 @@ char *imprimeInstrucao(instrucao *memoria, int pc) {
     return buffer;
 }
 
-//IMPRIMIR TODO SIMULADOR
-void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *bReg, int pc, instrucao *memoria, int *memDados, historico *hist) {
-    int selecionado = 0;
-    int tecla;
-    char *opcoesMenu[] = { "Run Pipeline", "Step Pipeline", "Step Back", "Voltar Menu" };
-    int totalOpcoes = 4;
-
-    while(1) {
-        clear();
-        printBorda(linhaspainel, colunaspainel);
-
-        attron(A_BOLD | COLOR_PAIR(1));
-        mvprintw(0, colunaspainel/2 - 11, " SIMULADOR DE PIPELINE ");
-
-        mvhline(1, 2, ACS_HLINE, colunaspainel - 4);// primeira linha
-        
-        mvhline(linhaspainel / 3, 2, ACS_HLINE, colunaspainel - 4);// segunda linha
-        mvhline(linhaspainel / 3 + 1, 2, ACS_HLINE, colunaspainel - 4);
-
-        mvhline((2 * linhaspainel)/3 + 1, 2, ACS_HLINE, colunaspainel - 4);//terceira linha
-        mvhline((linhaspainel/3) * 2, 2, ACS_HLINE, colunaspainel - 4);
-        
-        mvhline(linhaspainel - 4, 2, ACS_HLINE, (colunaspainel - (colunaspainel/5)) - 4);// quarta linha
-        mvhline(linhaspainel - 3, 2, ACS_HLINE, (colunaspainel - (colunaspainel/5)) - 4);
-        
-
-        
-        mvvline(1, 2, ACS_VLINE, linhaspainel - 2);//pimeira coluna
-        mvvline(1, colunaspainel / 5 - 1, ACS_VLINE, linhaspainel/3 - 1);
-        
-        mvvline(1, colunaspainel / 5, ACS_VLINE, linhaspainel/3);//segunda coluna
-        mvvline(1, (colunaspainel / 5)*2, ACS_VLINE, linhaspainel/3);
-        mvvline(1, (colunaspainel / 5)*2 - 1, ACS_VLINE, linhaspainel/3);
-        
-        mvvline(1, (colunaspainel / 5)*3, ACS_VLINE, linhaspainel/3);//terceira coluna
-        mvvline(1, (colunaspainel / 5)*3 - 1, ACS_VLINE, linhaspainel/3);
-
-        mvvline(1, (colunaspainel / 5)*4, ACS_VLINE, linhaspainel/3);//quarta coluna 
-        mvvline(1, (colunaspainel / 5)*4 - 1, ACS_VLINE, linhaspainel/3);
-
-        mvvline(1, colunaspainel - 3, ACS_VLINE, linhaspainel - 2);//quinta  coluna
-        
-        mvaddch(linhaspainel/3, (colunaspainel/5)*2, ACS_BTEE);
-        mvaddch(linhaspainel/3, (colunaspainel/5)*3, ACS_BTEE);
-        mvaddch(linhaspainel/3, (colunaspainel/5)*4, ACS_PLUS);
-
-        
-        //cantos IF
-        mvaddch(1, 2, ACS_ULCORNER);
-        mvaddch(linhaspainel/3, 2, ACS_LLCORNER);
-        mvaddch(linhaspainel/3, colunaspainel/5, ACS_LLCORNER);
-        mvaddch(1, colunaspainel/5 - 1, ACS_URCORNER);
-        
-        //cantos ID
-        mvaddch(1, colunaspainel/5,ACS_ULCORNER);
-        mvaddch(linhaspainel/3, colunaspainel/5 - 1, ACS_LRCORNER);
-        mvaddch(linhaspainel/3, (colunaspainel/5) * 2 - 1, ACS_LRCORNER);
-        mvaddch(1, ((colunaspainel/5) * 2) - 1, ACS_URCORNER);
-
-        //cantos EX
-        mvaddch(1, (colunaspainel/5) * 2,ACS_ULCORNER);
-        mvaddch(linhaspainel/3, (colunaspainel/5) * 2, ACS_LLCORNER);
-        mvaddch(1, (colunaspainel/5) * 3 - 1, ACS_URCORNER);
-        mvaddch(linhaspainel/3, (colunaspainel/5) * 3 - 1, ACS_LRCORNER);
-
-        //cantos MEM
-        mvaddch(1, (colunaspainel/5) * 3,ACS_ULCORNER);
-        mvaddch(linhaspainel/3, (colunaspainel/5) * 3, ACS_LLCORNER);
-        mvaddch(1, (colunaspainel/5) * 4 - 1, ACS_URCORNER);
-        mvaddch(linhaspainel/3, (colunaspainel/5) * 4 - 1, ACS_LRCORNER);
-
-        //cantos WB
-        mvaddch(1, (colunaspainel/5) * 4,ACS_ULCORNER);
-        mvaddch(linhaspainel/3, (colunaspainel/5) * 4, ACS_LLCORNER);
-        mvaddch(1, colunaspainel - 3, ACS_URCORNER);
-        mvaddch(linhaspainel/3, colunaspainel - 3, ACS_LRCORNER);
-
-        //cantos estatisticas
-        mvaddch(linhaspainel / 3 + 1, 2,ACS_ULCORNER);
-        mvaddch(linhaspainel / 3 + 1, colunaspainel - 3, ACS_URCORNER);
-        mvaddch((linhaspainel/3) * 2, 2, ACS_LLCORNER);
-        mvaddch(((linhaspainel/3) * 2), colunaspainel - 3, ACS_LRCORNER);
-
-        //cantos menu
-        mvaddch((linhaspainel / 3) * 2 + 1, 2, ACS_ULCORNER);
-        mvaddch((linhaspainel / 3) * 2 + 1, colunaspainel - 3, ACS_URCORNER);
-        mvaddch(linhaspainel - 4, 2, ACS_LLCORNER);
-        mvaddch(linhaspainel - 3, 2, ACS_ULCORNER);
-
-        attroff(A_BOLD | COLOR_PAIR(1));
-
-        attron(A_BOLD | COLOR_PAIR(2)); // IF
-        mvprintw(1, (colunaspainel/5) - colunaspainel/10 - 2, "  IF  ");
-        mvprintw(3, (colunaspainel/5)/2 - 5,"PC : %d",pipe->regIF_ID_atual.pc);
-        mvprintw(4, ((colunaspainel/5)/2 - 5),"HEX: %04X",pipe->regIF_ID_atual.inst.instrucao);
-        mvprintw(6, ((colunaspainel/5)/2 - 5),"BIN: %s",pipe->regIF_ID_atual.inst.mem);
-        attroff(A_BOLD | COLOR_PAIR(2));
-        
-        attron(A_BOLD | COLOR_PAIR(3)); // ID
-        mvprintw(1, (colunaspainel/5 * 2) - colunaspainel/10 - 3, "  ID  ");
-        mvprintw(3, (colunaspainel/5 * 2) - 30,"Instrução : %s", nomeInstrucao(pipe->regID_EX_atual.opcode,pipe->regID_EX_atual.funct));
-        mvprintw(4, (colunaspainel/5 * 2) - 30,"rs : %d",pipe->regID_EX_atual.rs);
-        mvprintw(5, (colunaspainel/5 * 2) - 30,"rt : %d",pipe->regID_EX_atual.rt);
-        mvprintw(6, (colunaspainel/5 * 2) - 30,"rd : %d",pipe->regID_EX_atual.rd);
-        mvprintw(7, (colunaspainel/5 * 2) - 30,"A  : %d",pipe->regID_EX_atual.A);
-        mvprintw(8, (colunaspainel/5 * 2) - 30,"B  : %d",pipe->regID_EX_atual.B);
-        mvprintw(9, (colunaspainel/5 * 2) - 30,"Imm: %d",pipe->regID_EX_atual.imm);
-        mvprintw(10, (colunaspainel/5 * 2) - 30,"Fun: %d",pipe->regID_EX_atual.funct);
-        mvprintw(12, (colunaspainel/5 * 2) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-1));
-        attroff(A_BOLD | COLOR_PAIR(3));
-
-        attron(A_BOLD | COLOR_PAIR(4)); // EX
-        mvprintw(1, (colunaspainel/5 * 3) - colunaspainel/10 - 3, "  EX  ");
-        mvprintw(3, (colunaspainel/5 * 3) - 30,"ULA : %d",pipe->regEX_MEM_atual.ulaSaida);
-        mvprintw(4, (colunaspainel/5 * 3) - 30,"B   : %d",pipe->regEX_MEM_atual.B);
-        mvprintw(5, (colunaspainel/5 * 3) - 30,"RD  : %d",pipe->regEX_MEM_atual.rd);
-        mvprintw(6, (colunaspainel/5 * 3) - 30,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
-        mvprintw(7, (colunaspainel/5 * 3) - 30,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
-        mvprintw(8, (colunaspainel/5 * 3) - 30,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
-        mvprintw(12, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
-
-        attroff(A_BOLD | COLOR_PAIR(4));
-
-        attron(A_BOLD | COLOR_PAIR(5)); // MEM
-        mvprintw(1, (colunaspainel/5 * 4) - colunaspainel/10 - 4, "  MEM  ");
-        mvprintw(3, (colunaspainel/5 * 4) - 30,"ULA : %d",pipe->regMEM_WB_atual.ulaSaida);
-        mvprintw(4, (colunaspainel/5 * 4) - 30,"MEM : %d",pipe->regMEM_WB_atual.mem);
-        mvprintw(5, (colunaspainel/5 * 4) - 30,"RD  : %d",pipe->regMEM_WB_atual.rd);
-        mvprintw(6, (colunaspainel/5 * 4) - 30,"EscMem : %d", pipe->regMEM_WB_atual.sinais.EscMem);
-        mvprintw(7, (colunaspainel/5 * 4) - 30,"MemReg : %d", pipe->regMEM_WB_atual.sinais.MemParaReg);
-        mvprintw(12, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
-
-        attroff(A_BOLD | COLOR_PAIR(5));
-
-        attron(A_BOLD | COLOR_PAIR(6)); // WB
-        mvprintw(1, (colunaspainel/5 * 5) - colunaspainel/10 - 4, "  WB  ");
-        mvprintw(3, (colunaspainel/5 * 5) - 30,"Destino : $%d", pipe->regMEM_WB_novo.rd);
-        mvprintw(4, (colunaspainel/5 * 5) - 30,"Valor   : %d", pipe->regMEM_WB_novo.sinais.MemParaReg ? pipe->regMEM_WB_novo.mem : pipe->regMEM_WB_novo.ulaSaida);
-        mvprintw(5, (colunaspainel/5 * 5) - 30,"EscReg : %d", pipe->regMEM_WB_novo.sinais.EscReg);
-        mvprintw(12, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
-        attroff(A_BOLD | COLOR_PAIR(6));
-
-        //registro instrucoes
-        attron(A_BOLD | COLOR_PAIR(3));
-        mvprintw(linhaspainel/3 + 2, 4, "REGISTRO DE INSTRUÇÕES:");
-        attroff(A_BOLD | COLOR_PAIR(3));
-
-        Node *linhasLog[8];
-        int qtdEncontrada = 0;
-        
-        Node *atualNode = hist->topo;
-        
-        while (atualNode != NULL && qtdEncontrada < 8) {
-            linhasLog[qtdEncontrada] = atualNode;
-            qtdEncontrada++;
-            atualNode = atualNode->next;
-        }
-
-        int linhaVisualInicial = linhaspainel/3 + 4;
-        int idxPrint = 0;
-
-        for (int i = qtdEncontrada - 1; i >= 0; i--) {
-            int pcSalvo = linhasLog[i]->st.pc;
-            
-            mvprintw(linhaVisualInicial + idxPrint, 4, "Ciclo %-2d |  Instrução: %-25s",  linhasLog[i]->st.estat.ciclos, imprimeInstrucao(memoria, pcSalvo));
-            idxPrint++;
-        }
-
-        attron(A_BOLD | COLOR_PAIR(2));
-        mvprintw(linhaspainel/3 + 2, colunaspainel - 30, "BANCO DE REGISTRADORES");
-        attroff(A_BOLD | COLOR_PAIR(2));
-        
-        for(int i = 0; i < 8; i++) {
-            mvprintw((linhaspainel/3 + 4) + i, colunaspainel - 23, "$%d: %d", i, bReg[i]);
-        }
-
-
-        attron(A_BOLD | COLOR_PAIR(3));
-        mvprintw(linhaspainel/3 + 2, 61, "ESTATÍSTICAS");
-        attroff(A_BOLD | COLOR_PAIR(3));
-
-        mvprintw((linhaspainel/3 + 4) + 0, 58,"Ciclos : %d",estatInst->ciclos);
-        mvprintw((linhaspainel/3 + 4) + 1, 58,"Instr  : %d",estatInst->total);
-        mvprintw((linhaspainel/3 + 4) + 2, 58,"Stalls : %d",estatInst->stalls);
-        mvprintw((linhaspainel/3 + 4) + 3, 58,"CPI    : %.2f",estatInst->CPI);
-        mvprintw((linhaspainel/3 + 4) + 4, 58,"Instruções por Tipo :");
-        mvprintw((linhaspainel/3 + 4) + 5, 58,"Total Tipo R : %d | ADD: %d | SUB: %d | AND: %d | OR: %d",estatInst->tipoR, estatInst->add, estatInst->sub, estatInst->and, estatInst->or);
-        mvprintw((linhaspainel/3 + 4) + 6, 58,"Total Tipo I : %d | LOAD: %d | STORE: %d | ADDI: %d | BEQ: %d",estatInst->tipoI, estatInst->lw, estatInst->sw, estatInst->addi, estatInst->beq);
-        mvprintw((linhaspainel/3 + 4) + 7, 58,"Total Tipo J : %d | JUMP: %d",estatInst->tipoJ, estatInst->j);
-
-
-        attron(A_BOLD | COLOR_PAIR(4));
-        mvprintw(linhaspainel - 3, 3, " OPÇÕES DE EXECUÇÃO ");
-        attroff(A_BOLD | COLOR_PAIR(4));
-        
-        for(int i = 0; i < totalOpcoes; i++) {
-            if(i == selecionado) {
-                attron(A_REVERSE | A_BOLD);
-            }
-
-            mvprintw(linhaspainel - 2, 3 + (i * 18), "[ %s ]", opcoesMenu[i]);
-
-            if(i == selecionado) {
-                attroff(A_REVERSE | A_BOLD);
-            }
-        }
-
-        refresh();
-        tecla = getch();
-
-        switch(tecla) {
-            case KEY_LEFT:
-                selecionado--;
-                if(selecionado < 0) selecionado = totalOpcoes - 1;
-                break;
-            case KEY_RIGHT:
-                selecionado++;
-                if(selecionado >= totalOpcoes) selecionado = 0;
-                break;
-            case 10: // Enter
-            
-                if(selecionado == 0) { // Run
-                    run_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);
-                }
-                else if(selecionado == 1) { // Step
-                    step_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);
-                } 
-                else if(selecionado == 2) { // Back
-                    voltaInstrucao(hist, &pc, memDados, bReg, estatInst, pipe);
-                } 
-                else if(selecionado == 3) { // Voltar
-                    return;
-                }
-                break;
-        }
-    }
-}
-
-// No arquivo hazards.c (ou adicione o protótipo no hazards.h)
 
 void forwardingUnit(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB, uint8_t *forwardA, uint8_t *forwardB) {
-    *forwardA = 0; // 00 = Sem adiantamento
+    
+    *forwardA = 0;
     *forwardB = 0;
-
-    // --- ENCAMINHAMENTO PARA O OPERANDO A (rs) ---
     
-    // Hazard EX: Maior prioridade (dado mais recente)
     if (EX_MEM->sinais.EscReg && (EX_MEM->rd != 0) && (EX_MEM->rd == ID_EX->rs)) {
-        *forwardA = 2; // Equivalente ao binário 10
+        *forwardA = 2;
     }
-    // Hazard MEM: Menor prioridade
     else if (MEM_WB->sinais.EscReg && (MEM_WB->rd != 0) && (MEM_WB->rd == ID_EX->rs)) {
-        *forwardA = 1; // Equivalente ao binário 01
+        *forwardA = 1;
     }
-
-    // --- ENCAMINHAMENTO PARA O OPERANDO B (rt) ---
     
-    // Hazard EX: Maior prioridade
     if (EX_MEM->sinais.EscReg && (EX_MEM->rd != 0) && (EX_MEM->rd == ID_EX->rt)) {
-        *forwardB = 2; // Equivalente ao binário 10
-    }
-    // Hazard MEM: Menor prioridade
+        *forwardB = 2;
+      
     else if (MEM_WB->sinais.EscReg && (MEM_WB->rd != 0) && (MEM_WB->rd == ID_EX->rt)) {
-        *forwardB = 1; // Equivalente ao binário 01
+        *forwardB = 1;
     }
 }
 
