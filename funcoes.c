@@ -585,6 +585,7 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB_atual) {
     forwardingUnit(ID_EX, EX_MEM, MEM_WB_atual, &forwardA, &forwardB);
 
     int valA;
+
     if (forwardA == 2) {
         valA = EX_MEM->ulaSaida; 
     } else if (forwardA == 1) {
@@ -627,14 +628,14 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB_atual) {
 }
 
 void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
-    if (EX_MEM->opcode == 0 && EX_MEM->rd == 0) {
-        MEM_WB->opcode = 0;
-        MEM_WB->rd = 0;
-        MEM_WB->ulaSaida = 0;
-        MEM_WB->mem = 0;
-        MEM_WB->sinais.EscReg = 0;
-    return; // Encerra o estágio mais cedo pois é um NOP 
-}
+    if (EX_MEM->opcode == 0 && EX_MEM->rd == 0){
+            MEM_WB->opcode = 0;
+            MEM_WB->rd = 0;
+            MEM_WB->ulaSaida = 0;
+            MEM_WB->mem = 0;
+            MEM_WB->sinais.EscReg = 0;
+        return; // Encerra o estágio mais cedo pois é um NOP 
+    }
 
     MEM_WB->opcode = EX_MEM->opcode;
     MEM_WB->rd = EX_MEM->rd;
@@ -676,8 +677,8 @@ void Executa_WB(MEM_WB *MEM_WB, int *bReg) {
 
 }
 
-void insereStall(registradoresPipeline *pipe, estatInstrucoes *estat)
-{
+void insereStall(registradoresPipeline *pipe, estatInstrucoes *estat){
+    
     pipe->ctrl.stallIF = 1;
     pipe->ctrl.stallID = 1;
 
@@ -1167,7 +1168,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(1, (colunaspainel/5 * 2) - colunaspainel/10 - 3, "  ID  ");
         mvprintw(3, (colunaspainel/5 * 2) - 21,"Instr : %s",
         nomeInstrucao(pipe->regID_EX_atual.opcode,pipe->regID_EX_atual.funct));
-        mvprintw(12, (colunaspainel/5 * 2) - 21,"ASM: %s",imprimeInstrucao(memoria, pc));
+        mvprintw(12, (colunaspainel/5 * 2) - 21,"ASM: %s",imprimeInstrucao(memoria, pc - 2));
         mvprintw(4, (colunaspainel/5 * 2) - 21,"rs : %d",pipe->regID_EX_atual.rs);
         mvprintw(5, (colunaspainel/5 * 2) - 21,"rt : %d",pipe->regID_EX_atual.rt);
         mvprintw(6, (colunaspainel/5 * 2) - 21,"rd : %d",pipe->regID_EX_atual.rd);
