@@ -135,7 +135,7 @@ void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, in
 int *inicializaBReg();
 int *inicializaMemDados();
 
-void step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
+int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
 void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
 void atualiza_regs_pipeline(registradoresPipeline *pipe);
 
@@ -163,8 +163,6 @@ void salvaDAT(int *memDados);
 void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *bReg, int pc, instrucao *memoria, int *memDados, historico *hist);
 char *nomeInstrucao(uint8_t opcode, uint8_t funct);
 char *nomeULA(uint8_t ulaOp);
-
-
 
 #include "hazards.h"
 
