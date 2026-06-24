@@ -585,6 +585,7 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB_atual) {
     forwardingUnit(ID_EX, EX_MEM, MEM_WB_atual, &forwardA, &forwardB);
 
     int valA;
+
     if (forwardA == 2) {
         valA = EX_MEM->ulaSaida; 
     } else if (forwardA == 1) {
@@ -627,14 +628,14 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB_atual) {
 }
 
 void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
-    if (EX_MEM->opcode == 0 && EX_MEM->rd == 0) {
-        MEM_WB->opcode = 0;
-        MEM_WB->rd = 0;
-        MEM_WB->ulaSaida = 0;
-        MEM_WB->mem = 0;
-        MEM_WB->sinais.EscReg = 0;
-    return; // Encerra o estágio mais cedo pois é um NOP 
-}
+    if (EX_MEM->opcode == 0 && EX_MEM->rd == 0){
+            MEM_WB->opcode = 0;
+            MEM_WB->rd = 0;
+            MEM_WB->ulaSaida = 0;
+            MEM_WB->mem = 0;
+            MEM_WB->sinais.EscReg = 0;
+        return; // Encerra o estágio mais cedo pois é um NOP 
+    }
 
     MEM_WB->opcode = EX_MEM->opcode;
     MEM_WB->rd = EX_MEM->rd;
@@ -651,7 +652,7 @@ void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
 }
 
 void Executa_WB(MEM_WB *MEM_WB, int *bReg) { 
-    
+
     if (MEM_WB->rd == 0) {
         bReg[0] = 0;
         return;
@@ -671,8 +672,8 @@ void Executa_WB(MEM_WB *MEM_WB, int *bReg) {
 
 }
 
-void insereStall(registradoresPipeline *pipe, estatInstrucoes *estat)
-{
+void insereStall(registradoresPipeline *pipe, estatInstrucoes *estat){
+    
     pipe->ctrl.stallIF = 1;
     pipe->ctrl.stallID = 1;
 
@@ -1161,7 +1162,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(8, (colunaspainel/5 * 2) - 30,"B  : %d",pipe->regID_EX_atual.B);
         mvprintw(9, (colunaspainel/5 * 2) - 30,"Imm: %d",pipe->regID_EX_atual.imm);
         mvprintw(10, (colunaspainel/5 * 2) - 30,"Fun: %d",pipe->regID_EX_atual.funct);
-        mvprintw(12, (colunaspainel/5 * 2) - 30,"ASM: %s",imprimeInstrucao(memoria, pc));
+        mvprintw(12, (colunaspainel/5 * 2) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-1));
         attroff(A_BOLD | COLOR_PAIR(3));
 
         attron(A_BOLD | COLOR_PAIR(4)); // EX
@@ -1172,7 +1173,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(6, (colunaspainel/5 * 3) - 30,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
         mvprintw(7, (colunaspainel/5 * 3) - 30,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
         mvprintw(8, (colunaspainel/5 * 3) - 30,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
-        mvprintw(12, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-1));
+        mvprintw(12, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
 
         attroff(A_BOLD | COLOR_PAIR(4));
 
@@ -1183,7 +1184,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(5, (colunaspainel/5 * 4) - 30,"RD  : %d",pipe->regMEM_WB_atual.rd);
         mvprintw(6, (colunaspainel/5 * 4) - 30,"EscMem : %d", pipe->regMEM_WB_atual.sinais.EscMem);
         mvprintw(7, (colunaspainel/5 * 4) - 30,"MemReg : %d", pipe->regMEM_WB_atual.sinais.MemParaReg);
-        mvprintw(12, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
+        mvprintw(12, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
 
         attroff(A_BOLD | COLOR_PAIR(5));
 
@@ -1192,7 +1193,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(3, (colunaspainel/5 * 5) - 30,"Destino : $%d", pipe->regMEM_WB_novo.rd);
         mvprintw(4, (colunaspainel/5 * 5) - 30,"Valor   : %d", pipe->regMEM_WB_novo.sinais.MemParaReg ? pipe->regMEM_WB_novo.mem : pipe->regMEM_WB_novo.ulaSaida);
         mvprintw(5, (colunaspainel/5 * 5) - 30,"EscReg : %d", pipe->regMEM_WB_novo.sinais.EscReg);
-        mvprintw(12, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
+        mvprintw(12, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
         attroff(A_BOLD | COLOR_PAIR(6));
 
         //registro instrucoes
