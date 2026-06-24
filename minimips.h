@@ -169,8 +169,6 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
 char *nomeInstrucao(uint8_t opcode, uint8_t funct);
 char *nomeULA(uint8_t ulaOp);
 
-
-
 #include "hazards.h"
 
 #endif
