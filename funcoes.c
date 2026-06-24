@@ -654,8 +654,6 @@ void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
 }
 
 void Executa_WB(MEM_WB *MEM_WB, int *bReg) { 
-    
-    //printf("\n\n==================== WB =======================\n");
 
     if (MEM_WB->rd == 0) {
         bReg[0] = 0;
@@ -667,14 +665,11 @@ void Executa_WB(MEM_WB *MEM_WB, int *bReg) {
         
         if(MEM_WB->sinais.MemParaReg == 1){
             dadoFinal = MEM_WB->mem;
-            //printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da memória)\n", dadoFinal);
         }else{
             dadoFinal = MEM_WB->ulaSaida;
-            //printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da ULA)\n", dadoFinal);
         }
 
         escreveRegistrador(bReg, MEM_WB->rd, dadoFinal, MEM_WB->sinais.EscReg);
-        //pri("\n[ WB ] %d escrito no registrador $%d.\n", dadoFinal, MEM_WB->rd);
     }
 
 }
@@ -778,19 +773,18 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
                         selecionado = 0;
                     break;
 
-                case 10:          // Enter no Linux/Unix
-                case KEY_ENTER:   // Enter do teclado numérico
-                    confirmou = 1; // Usuário tomou uma decisão
+                case 10:       
+                case KEY_ENTER:   
+                    confirmou = 1;
                     break;
             }
         }
 
-        // Processa a decisão do usuário após ele apertar ENTER
         if(selecionado == 0){
-            /* Sobrescrever: sai do loop "while(access...)" e vai direto para a criação */
+ 
             break; 
         } else {
-            /* Não sobrescrever: gera um novo nome e o "while" testará se ele existe */
+
             snprintf(nomeASM, sizeof(nomeASM), "%s_%d%s", nome, indice++, extensao);
         }
     }
@@ -862,7 +856,6 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
 void salvaDAT(int *memDados){
     char nomeDAT[50]={0}, nome[20], extensao[] = ".dat", resposta;
 
-    //printf("\nDigite o nome do arquivo que deseja salvar (.dat): ");
     fgets(nome, sizeof(nome),stdin);
     nome[strcspn(nome,"\n")]='\0';
     int indice=1;
@@ -872,7 +865,6 @@ void salvaDAT(int *memDados){
 
     // Verifica se o arquivo existe
     while (access(nomeDAT, F_OK) != -1) {
-        //printf("\nJá existe um arquivo com o nome %s, deseja sobrescrever? (s/n): ", nomeDAT);
         scanf(" %c", &resposta);
 
         if (resposta == 's' || resposta == 'S') {
@@ -880,15 +872,12 @@ void salvaDAT(int *memDados){
         } else if (resposta == 'n' || resposta == 'N') {
             snprintf(nomeDAT, sizeof(nomeDAT), "%s_%d%s", nome, indice, extensao);
             indice++;
-        } else {
-            //printf("\nOpção inválida. Tente novamente.\n");
         }
     }
 
     arquivo = fopen(nomeDAT,"w");
 
     if (arquivo == NULL) {
-        //printf("\nErro ao criar arquivo\n");
         return;
     }
 
@@ -897,8 +886,6 @@ void salvaDAT(int *memDados){
     }
 
     fclose(arquivo);
-
-    //printf("\nArquivo '%s' salvo!\n",nomeDAT);
 }
 
 void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc){
@@ -1068,32 +1055,24 @@ char *imprimeInstrucao(instrucao *memoria, int pc) {
     return buffer;
 }
 
-// No arquivo hazards.c (ou adicione o protótipo no hazards.h)
 
 void forwardingUnit(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB, uint8_t *forwardA, uint8_t *forwardB) {
-    *forwardA = 0; // 00 = Sem adiantamento
+    
+    *forwardA = 0;
     *forwardB = 0;
-
-    // --- ENCAMINHAMENTO PARA O OPERANDO A (rs) ---
     
-    // Hazard EX: Maior prioridade (dado mais recente)
     if (EX_MEM->sinais.EscReg && (EX_MEM->rd != 0) && (EX_MEM->rd == ID_EX->rs)) {
-        *forwardA = 2; // Equivalente ao binário 10
+        *forwardA = 2;
     }
-    // Hazard MEM: Menor prioridade
     else if (MEM_WB->sinais.EscReg && (MEM_WB->rd != 0) && (MEM_WB->rd == ID_EX->rs)) {
-        *forwardA = 1; // Equivalente ao binário 01
+        *forwardA = 1;
     }
-
-    // --- ENCAMINHAMENTO PARA O OPERANDO B (rt) ---
     
-    // Hazard EX: Maior prioridade
     if (EX_MEM->sinais.EscReg && (EX_MEM->rd != 0) && (EX_MEM->rd == ID_EX->rt)) {
-        *forwardB = 2; // Equivalente ao binário 10
-    }
-    // Hazard MEM: Menor prioridade
+        *forwardB = 2;
+      
     else if (MEM_WB->sinais.EscReg && (MEM_WB->rd != 0) && (MEM_WB->rd == ID_EX->rt)) {
-        *forwardB = 1; // Equivalente ao binário 01
+        *forwardB = 1;
     }
 }
 
@@ -1133,15 +1112,20 @@ char *nomeULA(uint8_t op){
 
     switch(op){
 
-        case 0:return "ADD";
+        case 0:
+            return "ADD";
 
-        case 1:return "SUB";
+        case 1:
+            return "SUB";
 
-        case 2:return "AND";
+        case 2:
+            return "AND";
 
-        case 3:return "OR";
+        case 3:
+            return "OR";
 
-        default:return "--";
+        default:
+            return "--";
     }
 
 }
@@ -1151,82 +1135,34 @@ void decodifica(instrucao *instrucao){
     instrucao->opcode = instrucao->instrucao >> 12; // Pega os 4 bits do opcode
 
     switch(instrucao->opcode){
-    case 0:
-        instrucao->tipoInst = tipoR;
-        instrucao->rs = (instrucao->instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
-        instrucao->rt = (instrucao->instrucao >> 6) & 0x7; // pega os 3 bits do rt
-        instrucao->rd = (instrucao->instrucao >> 3) & 0x7; // pega os 3 bits do rd
-        instrucao->funct = (instrucao->instrucao) & 0x7;
-        break;
+        case 0:
+            instrucao->tipoInst = tipoR;
+            instrucao->rs = (instrucao->instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
+            instrucao->rt = (instrucao->instrucao >> 6) & 0x7; // pega os 3 bits do rt
+            instrucao->rd = (instrucao->instrucao >> 3) & 0x7; // pega os 3 bits do rd
+            instrucao->funct = (instrucao->instrucao) & 0x7;
+            break;
 
-    case 2:
-        instrucao->tipoInst = tipoJ;
-        instrucao->addr = (instrucao->instrucao) &0xFF; // pega os 8 bits do adress
-        break;
+        case 2:
+            instrucao->tipoInst = tipoJ;
+            instrucao->addr = (instrucao->instrucao) &0xFF; // pega os 8 bits do adress
+            break;
 
-    default:
-        instrucao->tipoInst = tipoI;
-        instrucao->rs = (instrucao->instrucao >> 9) &0x7; // pega os 3 bits do rs
-        instrucao->rt = (instrucao->instrucao >> 6) &0x7; // pega os 3 bits do rt
-        instrucao->imm = (instrucao->instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
-        instrucao->imm = extensorBit(instrucao->imm);
+        default:
+            instrucao->tipoInst = tipoI;
+            instrucao->rs = (instrucao->instrucao >> 9) &0x7; // pega os 3 bits do rs
+            instrucao->rt = (instrucao->instrucao >> 6) &0x7; // pega os 3 bits do rt
+            instrucao->imm = (instrucao->instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
+            instrucao->imm = extensorBit(instrucao->imm);
     }
 }
 
+// TODO: Verificar se está sendo usado
 int Verifica_Bolha(sinaisUC sinais){
     return !(sinais.EscReg ||
              sinais.EscMem ||
              sinais.branch ||
              sinais.jump);
-}
-
-// TODO: Ajustar essas impressões - ncurses
-void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
-    (void)ciclo;
-    //printf("\n========== Ciclo %d ==========\n", ciclo);
-
-    int ocupados = 0;
-
-    // IF
-    if(pipe->regIF_ID_atual.inst.instrucao!=0) {
-        //printf("IF : PC=%d opcode=%d\n", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.opcode);
-        ocupados++;
-    }
-    else{
-        //printf("Stall ou NOP\n");
-    }
-
-    // ID
-    if(!Verifica_Bolha(pipe->regID_EX_atual.sinais)) {
-        //printf("ID : opcode=%d rs=%d rt=%d rd=%d A=%d B=%d\n",pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt,pipe->regID_EX_atual.rd, pipe->regID_EX_atual.A, pipe->regID_EX_atual.B);
-        ocupados++;
-    }
-    else{
-        //printf("Stall ou NOP\n");
-    }
-
-    // EX
-    if(!Verifica_Bolha(pipe->regEX_MEM_atual.sinais)) {
-        //printf("EX : opcode=%d ulaSaida=%d rd=%d\n",pipe->regEX_MEM_atual.opcode, pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.rd);
-        ocupados++;
-    }
-    else{
-        //printf("Stall ou NOP\n");
-    }
-
-    // MEM/WB - junta os dois pq WB só escreve o que veio de MEM
-    if(!Verifica_Bolha(pipe->regMEM_WB_atual.sinais)) {
-        //printf("MEM: opcode=%d ulaSaida=%d mem=%d rd=%d\n",pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.ulaSaida,pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.rd);
-        //printf("WB : opcode=%d vai escrever rd=%d\n",pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.rd);
-        ocupados++;
-    }
-    else{
-        //printf("Stall ou NOP\n");
-        //printf("Stall ou NOP\n");
-    }
-
-    //printf("Instruções no pipeline: %d/4\n", ocupados); // 4 instruções?
-    //printf("============================\n\n");
 }
 
 void printBorda(int linhaspainel, int colunaspainel){
