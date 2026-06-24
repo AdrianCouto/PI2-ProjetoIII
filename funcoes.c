@@ -652,8 +652,6 @@ void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
 }
 
 void Executa_WB(MEM_WB *MEM_WB, int *bReg) { 
-    
-    //printf("\n\n==================== WB =======================\n");
 
     if (MEM_WB->rd == 0) {
         bReg[0] = 0;
@@ -665,14 +663,11 @@ void Executa_WB(MEM_WB *MEM_WB, int *bReg) {
         
         if(MEM_WB->sinais.MemParaReg == 1){
             dadoFinal = MEM_WB->mem;
-            //printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da memória)\n", dadoFinal);
         }else{
             dadoFinal = MEM_WB->ulaSaida;
-            //printf("\n[ WB ] Dado %d preparado para escrita no banco de registradores. (Vindo da ULA)\n", dadoFinal);
         }
 
         escreveRegistrador(bReg, MEM_WB->rd, dadoFinal, MEM_WB->sinais.EscReg);
-        //pri("\n[ WB ] %d escrito no registrador $%d.\n", dadoFinal, MEM_WB->rd);
     }
 
 }
@@ -860,7 +855,6 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
 void salvaDAT(int *memDados){
     char nomeDAT[50]={0}, nome[20], extensao[] = ".dat", resposta;
 
-    //printf("\nDigite o nome do arquivo que deseja salvar (.dat): ");
     fgets(nome, sizeof(nome),stdin);
     nome[strcspn(nome,"\n")]='\0';
     int indice=1;
@@ -870,7 +864,6 @@ void salvaDAT(int *memDados){
 
     // Verifica se o arquivo existe
     while (access(nomeDAT, F_OK) != -1) {
-        //printf("\nJá existe um arquivo com o nome %s, deseja sobrescrever? (s/n): ", nomeDAT);
         scanf(" %c", &resposta);
 
         if (resposta == 's' || resposta == 'S') {
@@ -878,15 +871,12 @@ void salvaDAT(int *memDados){
         } else if (resposta == 'n' || resposta == 'N') {
             snprintf(nomeDAT, sizeof(nomeDAT), "%s_%d%s", nome, indice, extensao);
             indice++;
-        } else {
-            //printf("\nOpção inválida. Tente novamente.\n");
         }
     }
 
     arquivo = fopen(nomeDAT,"w");
 
     if (arquivo == NULL) {
-        //printf("\nErro ao criar arquivo\n");
         return;
     }
 
@@ -895,8 +885,6 @@ void salvaDAT(int *memDados){
     }
 
     fclose(arquivo);
-
-    //printf("\nArquivo '%s' salvo!\n",nomeDAT);
 }
 
 void contabilizaEstat(instrucao *memoria, estatInstrucoes *estat, int pc){
@@ -1157,51 +1145,55 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
 
         attroff(A_BOLD | COLOR_PAIR(1));
 
-        attron(A_BOLD | COLOR_PAIR(2));
+        attron(A_BOLD | COLOR_PAIR(2)); // IF
         mvprintw(1, (colunaspainel/5) - colunaspainel/10 - 2, "  IF  ");
-        mvprintw(3, (colunaspainel/5) / 2 - 5,"PC : %d",pipe->regIF_ID_atual.pc);
-        mvprintw(4, (colunaspainel/5 - 25),"HEX: %04X",pipe->regIF_ID_atual.inst.instrucao);
-        mvprintw(6, (colunaspainel/5 - 25),"%s",pipe->regIF_ID_atual.inst.mem);
+        mvprintw(3, (colunaspainel/5)/2 - 5,"PC : %d",pipe->regIF_ID_atual.pc);
+        mvprintw(4, ((colunaspainel/5)/2 - 5),"HEX: %04X",pipe->regIF_ID_atual.inst.instrucao);
+        mvprintw(6, ((colunaspainel/5)/2 - 5),"BIN: %s",pipe->regIF_ID_atual.inst.mem);
         attroff(A_BOLD | COLOR_PAIR(2));
         
-        attron(A_BOLD | COLOR_PAIR(3));
+        attron(A_BOLD | COLOR_PAIR(3)); // ID
         mvprintw(1, (colunaspainel/5 * 2) - colunaspainel/10 - 3, "  ID  ");
-        mvprintw(3, (colunaspainel/5 * 2) - 21,"Instr : %s",
-        nomeInstrucao(pipe->regID_EX_atual.opcode,pipe->regID_EX_atual.funct));
-        mvprintw(12, (colunaspainel/5 * 2) - 21,"ASM: %s",imprimeInstrucao(memoria, pc - 2));
-        mvprintw(4, (colunaspainel/5 * 2) - 21,"rs : %d",pipe->regID_EX_atual.rs);
-        mvprintw(5, (colunaspainel/5 * 2) - 21,"rt : %d",pipe->regID_EX_atual.rt);
-        mvprintw(6, (colunaspainel/5 * 2) - 21,"rd : %d",pipe->regID_EX_atual.rd);
-        mvprintw(7, (colunaspainel/5 * 2) - 21,"A  : %d",pipe->regID_EX_atual.A);
-        mvprintw(8, (colunaspainel/5 * 2) - 21,"B  : %d",pipe->regID_EX_atual.B);
-        mvprintw(9, (colunaspainel/5 * 2) - 21,"Imm: %d",pipe->regID_EX_atual.imm);
-        mvprintw(10, (colunaspainel/5 * 2) - 21,"Fun: %d",pipe->regID_EX_atual.funct);
+        mvprintw(3, (colunaspainel/5 * 2) - 30,"Instrução : %s", nomeInstrucao(pipe->regID_EX_atual.opcode,pipe->regID_EX_atual.funct));
+        mvprintw(4, (colunaspainel/5 * 2) - 30,"rs : %d",pipe->regID_EX_atual.rs);
+        mvprintw(5, (colunaspainel/5 * 2) - 30,"rt : %d",pipe->regID_EX_atual.rt);
+        mvprintw(6, (colunaspainel/5 * 2) - 30,"rd : %d",pipe->regID_EX_atual.rd);
+        mvprintw(7, (colunaspainel/5 * 2) - 30,"A  : %d",pipe->regID_EX_atual.A);
+        mvprintw(8, (colunaspainel/5 * 2) - 30,"B  : %d",pipe->regID_EX_atual.B);
+        mvprintw(9, (colunaspainel/5 * 2) - 30,"Imm: %d",pipe->regID_EX_atual.imm);
+        mvprintw(10, (colunaspainel/5 * 2) - 30,"Fun: %d",pipe->regID_EX_atual.funct);
+        mvprintw(12, (colunaspainel/5 * 2) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-1));
         attroff(A_BOLD | COLOR_PAIR(3));
 
-        attron(A_BOLD | COLOR_PAIR(4));
+        attron(A_BOLD | COLOR_PAIR(4)); // EX
         mvprintw(1, (colunaspainel/5 * 3) - colunaspainel/10 - 3, "  EX  ");
-        mvprintw(3, (colunaspainel/5 * 3) - 22,"ULA : %d",pipe->regEX_MEM_atual.ulaSaida);
-        mvprintw(4, (colunaspainel/5 * 3) - 22,"B   : %d",pipe->regEX_MEM_atual.B);
-        mvprintw(5, (colunaspainel/5 * 3) - 22,"RD  : %d",pipe->regEX_MEM_atual.rd);
-        mvprintw(6, (colunaspainel/5 * 3) - 22,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
-        mvprintw(7, (colunaspainel/5 * 3) - 22,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
-        mvprintw(8, (colunaspainel/5 * 3) - 22,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
+        mvprintw(3, (colunaspainel/5 * 3) - 30,"ULA : %d",pipe->regEX_MEM_atual.ulaSaida);
+        mvprintw(4, (colunaspainel/5 * 3) - 30,"B   : %d",pipe->regEX_MEM_atual.B);
+        mvprintw(5, (colunaspainel/5 * 3) - 30,"RD  : %d",pipe->regEX_MEM_atual.rd);
+        mvprintw(6, (colunaspainel/5 * 3) - 30,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
+        mvprintw(7, (colunaspainel/5 * 3) - 30,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
+        mvprintw(8, (colunaspainel/5 * 3) - 30,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
+        mvprintw(12, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
+
         attroff(A_BOLD | COLOR_PAIR(4));
 
-        attron(A_BOLD | COLOR_PAIR(5));
+        attron(A_BOLD | COLOR_PAIR(5)); // MEM
         mvprintw(1, (colunaspainel/5 * 4) - colunaspainel/10 - 4, "  MEM  ");
-        mvprintw(3, (colunaspainel/5 * 4) - 22,"ULA : %d",pipe->regMEM_WB_atual.ulaSaida);
-        mvprintw(4, (colunaspainel/5 * 4) - 22,"MEM : %d",pipe->regMEM_WB_atual.mem);
-        mvprintw(5, (colunaspainel/5 * 4) - 22,"RD  : %d",pipe->regMEM_WB_atual.rd);
-        mvprintw(6, (colunaspainel/5 * 4) - 22,"EscMem : %d", pipe->regMEM_WB_atual.sinais.EscMem);
-        mvprintw(7, (colunaspainel/5 * 4) - 22,"MemReg : %d", pipe->regMEM_WB_atual.sinais.MemParaReg);
+        mvprintw(3, (colunaspainel/5 * 4) - 30,"ULA : %d",pipe->regMEM_WB_atual.ulaSaida);
+        mvprintw(4, (colunaspainel/5 * 4) - 30,"MEM : %d",pipe->regMEM_WB_atual.mem);
+        mvprintw(5, (colunaspainel/5 * 4) - 30,"RD  : %d",pipe->regMEM_WB_atual.rd);
+        mvprintw(6, (colunaspainel/5 * 4) - 30,"EscMem : %d", pipe->regMEM_WB_atual.sinais.EscMem);
+        mvprintw(7, (colunaspainel/5 * 4) - 30,"MemReg : %d", pipe->regMEM_WB_atual.sinais.MemParaReg);
+        mvprintw(12, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
+
         attroff(A_BOLD | COLOR_PAIR(5));
 
-        attron(A_BOLD | COLOR_PAIR(6));
+        attron(A_BOLD | COLOR_PAIR(6)); // WB
         mvprintw(1, (colunaspainel/5 * 5) - colunaspainel/10 - 4, "  WB  ");
-        mvprintw(3, (colunaspainel/5 * 5) - 22,"Destino : $%d", pipe->regMEM_WB_novo.rd);
-        mvprintw(4, (colunaspainel/5 * 5) - 22,"Valor   : %d", pipe->regMEM_WB_novo.sinais.MemParaReg ? pipe->regMEM_WB_novo.mem : pipe->regMEM_WB_novo.ulaSaida);
-        mvprintw(5, (colunaspainel/5 * 5) - 22,"EscReg : %d", pipe->regMEM_WB_novo.sinais.EscReg);
+        mvprintw(3, (colunaspainel/5 * 5) - 30,"Destino : $%d", pipe->regMEM_WB_novo.rd);
+        mvprintw(4, (colunaspainel/5 * 5) - 30,"Valor   : %d", pipe->regMEM_WB_novo.sinais.MemParaReg ? pipe->regMEM_WB_novo.mem : pipe->regMEM_WB_novo.ulaSaida);
+        mvprintw(5, (colunaspainel/5 * 5) - 30,"EscReg : %d", pipe->regMEM_WB_novo.sinais.EscReg);
+        mvprintw(12, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
         attroff(A_BOLD | COLOR_PAIR(6));
 
         //registro instrucoes
@@ -1231,28 +1223,27 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         }
 
         attron(A_BOLD | COLOR_PAIR(2));
-        mvprintw(linhaspainel/2 - 5, colunaspainel - 30, "BANCO DE REGISTRADORES");
+        mvprintw(linhaspainel/3 + 2, colunaspainel - 30, "BANCO DE REGISTRADORES");
+        attroff(A_BOLD | COLOR_PAIR(2));
         
         for(int i = 0; i < 8; i++) {
-            mvprintw((linhaspainel/2) - 2 + i, colunaspainel - 23, "$%d: %d", i, bReg[i]);
+            mvprintw((linhaspainel/3 + 4) + i, colunaspainel - 23, "$%d: %d", i, bReg[i]);
         }
 
-        attroff(A_BOLD | COLOR_PAIR(2));
 
         attron(A_BOLD | COLOR_PAIR(3));
-        mvprintw(linhaspainel/2 - 4, 61, "ESTATÍSTICAS");
-
-        mvprintw(linhaspainel/2 - 2, 61,"Ciclos : %d",estatInst->ciclos);
-        mvprintw(linhaspainel/2 - 1, 61,"Instr  : %d",estatInst->total);
-        mvprintw(linhaspainel/2 - 0, 61,"Stalls : %d",estatInst->stalls);
-        mvprintw(linhaspainel/2 + 1, 61,"CPI    : %.2f",estatInst->CPI);
-        mvprintw(linhaspainel/2 + 2, 61,"R : %d",estatInst->tipoR);
-        mvprintw(linhaspainel/2 + 3, 61,"I : %d",estatInst->tipoI);
-        mvprintw(linhaspainel/2 + 4, 61,"J : %d",estatInst->tipoJ);
-        mvprintw(linhaspainel/2 + 5, 61,"ADD:%d SUB:%d",estatInst->add,estatInst->sub);
-        mvprintw(linhaspainel/2 + 6, 61,"LW:%d SW:%d",estatInst->lw,estatInst->sw);
-
+        mvprintw(linhaspainel/3 + 2, 61, "ESTATÍSTICAS");
         attroff(A_BOLD | COLOR_PAIR(3));
+
+        mvprintw((linhaspainel/3 + 4) + 0, 58,"Ciclos : %d",estatInst->ciclos);
+        mvprintw((linhaspainel/3 + 4) + 1, 58,"Instr  : %d",estatInst->total);
+        mvprintw((linhaspainel/3 + 4) + 2, 58,"Stalls : %d",estatInst->stalls);
+        mvprintw((linhaspainel/3 + 4) + 3, 58,"CPI    : %.2f",estatInst->CPI);
+        mvprintw((linhaspainel/3 + 4) + 4, 58,"Instruções por Tipo :");
+        mvprintw((linhaspainel/3 + 4) + 5, 58,"Total Tipo R : %d | ADD: %d | SUB: %d | AND: %d | OR: %d",estatInst->tipoR, estatInst->add, estatInst->sub, estatInst->and, estatInst->or);
+        mvprintw((linhaspainel/3 + 4) + 6, 58,"Total Tipo I : %d | LOAD: %d | STORE: %d | ADDI: %d | BEQ: %d",estatInst->tipoI, estatInst->lw, estatInst->sw, estatInst->addi, estatInst->beq);
+        mvprintw((linhaspainel/3 + 4) + 7, 58,"Total Tipo J : %d | JUMP: %d",estatInst->tipoJ, estatInst->j);
+
 
         attron(A_BOLD | COLOR_PAIR(4));
         mvprintw(linhaspainel - 3, 3, " OPÇÕES DE EXECUÇÃO ");
@@ -1299,27 +1290,6 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
                 break;
         }
     }
-}
-
-
-void desenhaQuadro(int y, int x, int h, int w, char *titulo){
-
-    mvhline(y, x+1, ACS_HLINE, w-2);
-    mvhline(y+h-1, x+1, ACS_HLINE, w-2);
-
-    mvvline(y+1,x,ACS_VLINE,h-2);
-    mvvline(y+1,x+w-1,ACS_VLINE,h-2);
-
-    mvaddch(y,x,ACS_ULCORNER);
-    mvaddch(y,x+w-1,ACS_URCORNER);
-    mvaddch(y+h-1,x,ACS_LLCORNER);
-    mvaddch(y+h-1,x+w-1,ACS_LRCORNER);
-
-    attron(A_BOLD);
-
-    mvprintw(y,x+2,"%s",titulo);
-
-    attroff(A_BOLD);
 }
 
 // No arquivo hazards.c (ou adicione o protótipo no hazards.h)
@@ -1387,15 +1357,20 @@ char *nomeULA(uint8_t op){
 
     switch(op){
 
-        case 0:return "ADD";
+        case 0:
+            return "ADD";
 
-        case 1:return "SUB";
+        case 1:
+            return "SUB";
 
-        case 2:return "AND";
+        case 2:
+            return "AND";
 
-        case 3:return "OR";
+        case 3:
+            return "OR";
 
-        default:return "--";
+        default:
+            return "--";
     }
 
 }
@@ -1405,82 +1380,34 @@ void decodifica(instrucao *instrucao){
     instrucao->opcode = instrucao->instrucao >> 12; // Pega os 4 bits do opcode
 
     switch(instrucao->opcode){
-    case 0:
-        instrucao->tipoInst = tipoR;
-        instrucao->rs = (instrucao->instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
-        instrucao->rt = (instrucao->instrucao >> 6) & 0x7; // pega os 3 bits do rt
-        instrucao->rd = (instrucao->instrucao >> 3) & 0x7; // pega os 3 bits do rd
-        instrucao->funct = (instrucao->instrucao) & 0x7;
-        break;
+        case 0:
+            instrucao->tipoInst = tipoR;
+            instrucao->rs = (instrucao->instrucao >> 9) & 0x7; // pega os 3 bits do rs (desloca 6 bits para a direita e pega os 3 mais significativos que ficaram)
+            instrucao->rt = (instrucao->instrucao >> 6) & 0x7; // pega os 3 bits do rt
+            instrucao->rd = (instrucao->instrucao >> 3) & 0x7; // pega os 3 bits do rd
+            instrucao->funct = (instrucao->instrucao) & 0x7;
+            break;
 
-    case 2:
-        instrucao->tipoInst = tipoJ;
-        instrucao->addr = (instrucao->instrucao) &0xFF; // pega os 8 bits do adress
-        break;
+        case 2:
+            instrucao->tipoInst = tipoJ;
+            instrucao->addr = (instrucao->instrucao) &0xFF; // pega os 8 bits do adress
+            break;
 
-    default:
-        instrucao->tipoInst = tipoI;
-        instrucao->rs = (instrucao->instrucao >> 9) &0x7; // pega os 3 bits do rs
-        instrucao->rt = (instrucao->instrucao >> 6) &0x7; // pega os 3 bits do rt
-        instrucao->imm = (instrucao->instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
-        instrucao->imm = extensorBit(instrucao->imm);
+        default:
+            instrucao->tipoInst = tipoI;
+            instrucao->rs = (instrucao->instrucao >> 9) &0x7; // pega os 3 bits do rs
+            instrucao->rt = (instrucao->instrucao >> 6) &0x7; // pega os 3 bits do rt
+            instrucao->imm = (instrucao->instrucao) &0x3F; // pega os 6 bits do imediato (deve passar por um extensor antes da ULA)
+            instrucao->imm = extensorBit(instrucao->imm);
     }
 }
 
+// TODO: Verificar se está sendo usado
 int Verifica_Bolha(sinaisUC sinais){
     return !(sinais.EscReg ||
              sinais.EscMem ||
              sinais.branch ||
              sinais.jump);
-}
-
-// TODO: Ajustar essas impressões - ncurses
-void print_pipeline_state(registradoresPipeline *pipe, int ciclo) {
-    (void)ciclo;
-    //printf("\n========== Ciclo %d ==========\n", ciclo);
-
-    int ocupados = 0;
-
-    // IF
-    if(pipe->regIF_ID_atual.inst.instrucao!=0) {
-        //printf("IF : PC=%d opcode=%d\n", pipe->regIF_ID_atual.pc, pipe->regIF_ID_atual.inst.opcode);
-        ocupados++;
-    }
-    else{
-        //printf("Stall ou NOP\n");
-    }
-
-    // ID
-    if(!Verifica_Bolha(pipe->regID_EX_atual.sinais)) {
-        //printf("ID : opcode=%d rs=%d rt=%d rd=%d A=%d B=%d\n",pipe->regID_EX_atual.opcode, pipe->regID_EX_atual.rs, pipe->regID_EX_atual.rt,pipe->regID_EX_atual.rd, pipe->regID_EX_atual.A, pipe->regID_EX_atual.B);
-        ocupados++;
-    }
-    else{
-        //printf("Stall ou NOP\n");
-    }
-
-    // EX
-    if(!Verifica_Bolha(pipe->regEX_MEM_atual.sinais)) {
-        //printf("EX : opcode=%d ulaSaida=%d rd=%d\n",pipe->regEX_MEM_atual.opcode, pipe->regEX_MEM_atual.ulaSaida, pipe->regEX_MEM_atual.rd);
-        ocupados++;
-    }
-    else{
-        //printf("Stall ou NOP\n");
-    }
-
-    // MEM/WB - junta os dois pq WB só escreve o que veio de MEM
-    if(!Verifica_Bolha(pipe->regMEM_WB_atual.sinais)) {
-        //printf("MEM: opcode=%d ulaSaida=%d mem=%d rd=%d\n",pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.ulaSaida,pipe->regMEM_WB_atual.mem, pipe->regMEM_WB_atual.rd);
-        //printf("WB : opcode=%d vai escrever rd=%d\n",pipe->regMEM_WB_atual.opcode, pipe->regMEM_WB_atual.rd);
-        ocupados++;
-    }
-    else{
-        //printf("Stall ou NOP\n");
-        //printf("Stall ou NOP\n");
-    }
-
-    //printf("Instruções no pipeline: %d/4\n", ocupados); // 4 instruções?
-    //printf("============================\n\n");
 }
 
 void printBorda(int linhaspainel, int colunaspainel){
