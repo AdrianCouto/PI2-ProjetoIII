@@ -214,22 +214,15 @@ int8_t extensorBit(int8_t imm){
 
 // RUN
 
-void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst)
-{
-    int hazardTipo;
-    while (1)
-    {
-        hazardTipo = step_pipeline(hist, memoria, bReg, pc, memDados, pipe, estatInst);
+void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *hazardTipo){
+    while (1){
+        *hazardTipo = step_pipeline(hist, memoria, bReg, pc, memDados, pipe, estatInst);
 
-        if ((*pc >= 256 || memoria[*pc].instrucao == 0) &&
-            pipe->regIF_ID_atual.inst.instrucao == 0 &&
-            pipe->regID_EX_atual.opcode == 0 &&
-            pipe->regEX_MEM_atual.opcode == 0 &&
-            pipe->regMEM_WB_atual.opcode == 0)
-        {
+        if ((*pc >= 256 || memoria[*pc].instrucao == 0) && pipe->regIF_ID_atual.inst.instrucao == 0 && pipe->regID_EX_atual.opcode == 0 && pipe->regEX_MEM_atual.opcode == 0 && pipe->regMEM_WB_atual.opcode == 0){
             break;
         }
     }
+    usleep(150000);
 }
 
 int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {    
@@ -278,10 +271,10 @@ int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *
     else if(hazard == hazardControle)
     {
     if(pipe->regID_EX_atual.sinais.jump)
-        *pc = pipe->regID_EX_atual.imm;
+        *pc = pipe->regID_EX_atual.addr;
 
     else if(pipe->regEX_MEM_atual.sinais.branch)
-        *pc = pipe->regEX_MEM_atual.ulaSaida;
+        *pc = pipe->regEX_MEM_atual.pc + pipe->regEX_MEM_atual.imm;
 
     insereFlush(pipe);
     }
@@ -565,6 +558,8 @@ void Executa_ID(ID_EX *ID_EX, IF_ID *IF_ID, int *bReg) {
     ID_EX->rt = IF_ID->inst.rt;
     ID_EX->rd = IF_ID->inst.rd;
     ID_EX->imm = IF_ID->inst.imm;
+    ID_EX->addr = IF_ID->inst.addr;
+    ID_EX->pc = IF_ID->pc;
     ID_EX->funct = IF_ID->inst.funct;
     ID_EX->opcode = IF_ID->inst.opcode;
 
@@ -582,6 +577,9 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB_atual) {
         return;
     }
 
+    EX_MEM->imm = ID_EX->imm;
+    EX_MEM->pc = ID_EX->pc;
+    
     uint8_t forwardA = 0, forwardB = 0;
 
     forwardingUnit(ID_EX, EX_MEM, MEM_WB_atual, &forwardA, &forwardB);
@@ -1166,7 +1164,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(8, (colunaspainel/5 * 2) - 30,"B  : %d",pipe->regID_EX_atual.B);
         mvprintw(9, (colunaspainel/5 * 2) - 30,"Imm: %d",pipe->regID_EX_atual.imm);
         mvprintw(10, (colunaspainel/5 * 2) - 30,"Fun: %d",pipe->regID_EX_atual.funct);
-        mvprintw(12, (colunaspainel/5 * 2) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-1));
+        mvprintw(12, (colunaspainel/5 * 2) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
         attroff(A_BOLD | COLOR_PAIR(3));
 
         attron(A_BOLD | COLOR_PAIR(4)); // EX
@@ -1177,7 +1175,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(6, (colunaspainel/5 * 3) - 30,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
         mvprintw(7, (colunaspainel/5 * 3) - 30,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
         mvprintw(8, (colunaspainel/5 * 3) - 30,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
-        mvprintw(12, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
+        mvprintw(12, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
 
         attroff(A_BOLD | COLOR_PAIR(4));
 
@@ -1188,7 +1186,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(5, (colunaspainel/5 * 4) - 30,"RD  : %d",pipe->regMEM_WB_atual.rd);
         mvprintw(6, (colunaspainel/5 * 4) - 30,"EscMem : %d", pipe->regMEM_WB_atual.sinais.EscMem);
         mvprintw(7, (colunaspainel/5 * 4) - 30,"MemReg : %d", pipe->regMEM_WB_atual.sinais.MemParaReg);
-        mvprintw(12, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
+        mvprintw(12, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
 
         attroff(A_BOLD | COLOR_PAIR(5));
 
@@ -1197,7 +1195,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw(3, (colunaspainel/5 * 5) - 30,"Destino : $%d", pipe->regMEM_WB_novo.rd);
         mvprintw(4, (colunaspainel/5 * 5) - 30,"Valor   : %d", pipe->regMEM_WB_novo.sinais.MemParaReg ? pipe->regMEM_WB_novo.mem : pipe->regMEM_WB_novo.ulaSaida);
         mvprintw(5, (colunaspainel/5 * 5) - 30,"EscReg : %d", pipe->regMEM_WB_novo.sinais.EscReg);
-        mvprintw(12, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
+        mvprintw(12, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-5));
         attroff(A_BOLD | COLOR_PAIR(6));
 
         //registro instrucoes
@@ -1290,7 +1288,15 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
             case 10: // Enter
             
                 if(selecionado == 0) { // Run
-                    run_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);
+                    while(1){
+                        ultimoHazard = step_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);
+                    
+                        if ((pc >= 256 || memoria[pc].instrucao == 0) && pipe->regIF_ID_atual.inst.instrucao == 0 && pipe->regID_EX_atual.opcode == 0 && pipe->regEX_MEM_atual.opcode == 0 && pipe->regMEM_WB_atual.opcode == 0) {
+                            break;
+                        }
+                        usleep(500000);
+                    }
+                    ultimoHazard = 0;
                 }
                 else if(selecionado == 1) { // Step
                     ultimoHazard = step_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);

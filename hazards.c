@@ -22,12 +22,11 @@ tipoHazard unidadeDetecHazards(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM){
 tipoHazard detectaHazardDados(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM) {
 
     (void)EX_MEM;
-    int instrucaoAnteriorEhLW = (ID_EX->opcode == 11); 
+    int instrucaoAnteriorEhLW = (ID_EX->sinais.MemParaReg == 1); 
+    int conflitoReg = (ID_EX->rt == IF_ID->inst.rs || ID_EX->rt == IF_ID->inst.rt);
 
-    if (instrucaoAnteriorEhLW) {
-        if (ID_EX->rt != 0 && (ID_EX->rt == IF_ID->inst.rs || ID_EX->rt == IF_ID->inst.rt)) {
-            return 1; 
-        }
+    if (instrucaoAnteriorEhLW && conflitoReg) {
+        return 1;
     }
 
     return 0;

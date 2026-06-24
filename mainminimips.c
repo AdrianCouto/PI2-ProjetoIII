@@ -215,7 +215,8 @@ int main(){
 
             case 7:
                 endwin();
-                run_pipeline(&hist, memoria, bReg, &pc, memDados, &pipe, &estatInst);
+                int hazardTipo;
+                run_pipeline(&hist, memoria, bReg, &pc, memDados, &pipe, &estatInst, &hazardTipo);
                 iniciaNcurses();
                 break;
 
