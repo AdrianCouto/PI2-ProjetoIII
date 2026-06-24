@@ -216,9 +216,10 @@ int8_t extensorBit(int8_t imm){
 
 void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst)
 {
+    int hazardTipo;
     while (1)
     {
-        step_pipeline(hist, memoria, bReg, pc, memDados, pipe, estatInst);
+        hazardTipo = step_pipeline(hist, memoria, bReg, pc, memDados, pipe, estatInst);
 
         if ((*pc >= 256 || memoria[*pc].instrucao == 0) &&
             pipe->regIF_ID_atual.inst.instrucao == 0 &&
@@ -231,7 +232,7 @@ void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *
     }
 }
 
-void step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {    
+int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {    
     salvaEstado(hist, *pc, memDados, bReg, estatInst, pipe);
 
     
@@ -298,6 +299,7 @@ void step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int 
     } else {
         estatInst->CPI = 0.0;
     }
+    return hazard;
 }
 
 void atualiza_regs_pipeline(registradoresPipeline *pipe)
@@ -1061,6 +1063,8 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
     char *opcoesMenu[] = { "Run Pipeline", "Step Pipeline", "Step Back", "Voltar Menu" };
     int totalOpcoes = 4;
 
+    int ultimoHazard = 0;
+    
     while(1) {
         clear();
         printBorda(linhaspainel, colunaspainel);
@@ -1244,7 +1248,17 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
         mvprintw((linhaspainel/3 + 4) + 6, 58,"Total Tipo I : %d | LOAD: %d | STORE: %d | ADDI: %d | BEQ: %d",estatInst->tipoI, estatInst->lw, estatInst->sw, estatInst->addi, estatInst->beq);
         mvprintw((linhaspainel/3 + 4) + 7, 58,"Total Tipo J : %d | JUMP: %d",estatInst->tipoJ, estatInst->j);
 
-
+        // Exibe mensagens de hazard, se houver
+        if (ultimoHazard == 1) {
+            attron(A_BOLD | COLOR_PAIR(4)); // Texto em vermelho/destaque
+            mvprintw(2, colunaspainel/2 - 25, ">>> [!] HAZARD DE DADOS (LOAD-USE): STALL INJETADO <<<");
+            attroff(A_BOLD | COLOR_PAIR(4));
+        } else if (ultimoHazard == 2) {
+            attron(A_BOLD | COLOR_PAIR(4));
+            mvprintw(2, colunaspainel/2 - 22, ">>> [!] HAZARD DE CONTROLE: FLUSH INJETADO <<<");
+            attroff(A_BOLD | COLOR_PAIR(4));
+        }
+        
         attron(A_BOLD | COLOR_PAIR(4));
         mvprintw(linhaspainel - 3, 3, " OPÇÕES DE EXECUÇÃO ");
         attroff(A_BOLD | COLOR_PAIR(4));
@@ -1279,7 +1293,7 @@ void imprimeTodoSimulador(int colunaspainel, int linhaspainel, registradoresPipe
                     run_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);
                 }
                 else if(selecionado == 1) { // Step
-                    step_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);
+                    ultimoHazard = step_pipeline(hist, memoria, bReg, &pc, memDados, pipe, estatInst);
                 } 
                 else if(selecionado == 2) { // Back
                     voltaInstrucao(hist, &pc, memDados, bReg, estatInst, pipe);

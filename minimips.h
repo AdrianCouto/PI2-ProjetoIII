@@ -135,7 +135,7 @@ void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, in
 int *inicializaBReg();
 int *inicializaMemDados();
 
-void step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
+int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
 void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
 void atualiza_regs_pipeline(registradoresPipeline *pipe);
 
