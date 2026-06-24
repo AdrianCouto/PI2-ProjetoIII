@@ -67,6 +67,8 @@ typedef struct ID_EX {
     uint8_t rd;
     uint8_t funct;
     int8_t imm;
+    uint8_t addr;
+    int pc;
 } ID_EX;
 
 typedef struct EX_MEM {
@@ -76,6 +78,9 @@ typedef struct EX_MEM {
     int8_t B;
     uint8_t rd;
     int8_t zero;
+    int8_t imm;
+    uint8_t addr;
+    int pc;
 } EX_MEM;
 
 typedef struct MEM_WB {
@@ -136,7 +141,7 @@ int *inicializaBReg();
 int *inicializaMemDados();
 
 int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
-void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst);
+void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *hazardTipo);
 void atualiza_regs_pipeline(registradoresPipeline *pipe);
 
 void Executa_IF(IF_ID *IF_ID, instrucao *memoria, int *pc);

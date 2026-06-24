@@ -214,21 +214,15 @@ int8_t extensorBit(int8_t imm){
 
 // RUN
 
-void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst)
-{
-    while (1)
-    {
-        step_pipeline(hist, memoria, bReg, pc, memDados, pipe, estatInst);
+void run_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst, int *hazardTipo){
+    while (1){
+        *hazardTipo = step_pipeline(hist, memoria, bReg, pc, memDados, pipe, estatInst);
 
-        if ((*pc >= 256 || memoria[*pc].instrucao == 0) &&
-            pipe->regIF_ID_atual.inst.instrucao == 0 &&
-            pipe->regID_EX_atual.opcode == 0 &&
-            pipe->regEX_MEM_atual.opcode == 0 &&
-            pipe->regMEM_WB_atual.opcode == 0)
-        {
+        if ((*pc >= 256 || memoria[*pc].instrucao == 0) && pipe->regIF_ID_atual.inst.instrucao == 0 && pipe->regID_EX_atual.opcode == 0 && pipe->regEX_MEM_atual.opcode == 0 && pipe->regMEM_WB_atual.opcode == 0){
             break;
         }
     }
+    usleep(150000);
 }
 
 int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *memDados, registradoresPipeline *pipe, estatInstrucoes *estatInst) {    
@@ -277,10 +271,10 @@ int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *
     else if(hazard == hazardControle)
     {
     if(pipe->regID_EX_atual.sinais.jump)
-        *pc = pipe->regID_EX_atual.imm;
+        *pc = pipe->regID_EX_atual.addr;
 
     else if(pipe->regEX_MEM_atual.sinais.branch)
-        *pc = pipe->regEX_MEM_atual.ulaSaida;
+        *pc = pipe->regEX_MEM_atual.pc + pipe->regEX_MEM_atual.imm;
 
     insereFlush(pipe);
     }
@@ -298,7 +292,6 @@ int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *
     } else {
         estatInst->CPI = 0.0;
     }
-
     return hazard;
 }
 
@@ -374,7 +367,7 @@ void unidadeControle(instrucao *instrucao, sinaisUC *sinais){
             sinais->UlaFonte = 0;
             sinais->ulaOp = instrucao->funct;
             sinais->EscMem = 0;
-            sinais->MemParaReg = 1;
+            sinais->MemParaReg = 0;
             sinais->jump = 0;
             sinais->branch = 0;
 
@@ -398,7 +391,7 @@ void unidadeControle(instrucao *instrucao, sinaisUC *sinais){
             sinais->UlaFonte = 1;
             sinais->ulaOp = 0;
             sinais->EscMem = 0;
-            sinais->MemParaReg = 1;
+            sinais->MemParaReg = 0;
             sinais->jump = 0;
             sinais->branch = 0;
 
@@ -422,7 +415,7 @@ void unidadeControle(instrucao *instrucao, sinaisUC *sinais){
             sinais->UlaFonte = 1;
             sinais->ulaOp = 0; // add
             sinais->EscMem = 0;
-            sinais->MemParaReg = 0;
+            sinais->MemParaReg = 1;
             sinais->jump = 0;
             sinais->branch = 0;
             
@@ -565,6 +558,8 @@ void Executa_ID(ID_EX *ID_EX, IF_ID *IF_ID, int *bReg) {
     ID_EX->rt = IF_ID->inst.rt;
     ID_EX->rd = IF_ID->inst.rd;
     ID_EX->imm = IF_ID->inst.imm;
+    ID_EX->addr = IF_ID->inst.addr;
+    ID_EX->pc = IF_ID->pc;
     ID_EX->funct = IF_ID->inst.funct;
     ID_EX->opcode = IF_ID->inst.opcode;
 
@@ -582,6 +577,9 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB_atual) {
         return;
     }
 
+    EX_MEM->imm = ID_EX->imm;
+    EX_MEM->pc = ID_EX->pc;
+    
     uint8_t forwardA = 0, forwardB = 0;
 
     forwardingUnit(ID_EX, EX_MEM, MEM_WB_atual, &forwardA, &forwardB);
@@ -780,11 +778,9 @@ void salvaASM(int colunaspainel, int linhaspainel, instrucao *memoria, int linha
             }
         }
 
-        if(selecionado == 0){
- 
+        if(selecionado == 0){ 
             break; 
         } else {
-
             snprintf(nomeASM, sizeof(nomeASM), "%s_%d%s", nome, indice++, extensao);
         }
     }
@@ -1055,7 +1051,7 @@ char *imprimeInstrucao(instrucao *memoria, int pc) {
     return buffer;
 }
 
-
+// No arquivo hazards.c (ou adicione o protótipo no hazards.h)
 void forwardingUnit(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB, uint8_t *forwardA, uint8_t *forwardB) {
     
     *forwardA = 0;
@@ -1070,7 +1066,7 @@ void forwardingUnit(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB, uint8_t *forwa
     
     if (EX_MEM->sinais.EscReg && (EX_MEM->rd != 0) && (EX_MEM->rd == ID_EX->rt)) {
         *forwardB = 2;
-      
+    }
     else if (MEM_WB->sinais.EscReg && (MEM_WB->rd != 0) && (MEM_WB->rd == ID_EX->rt)) {
         *forwardB = 1;
     }

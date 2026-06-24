@@ -321,7 +321,7 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw(8, (colunaspainel/5 * 2) - 30,"B  : %d",pipe->regID_EX_atual.B);
     mvprintw(9, (colunaspainel/5 * 2) - 30,"Imm: %d",pipe->regID_EX_atual.imm);
     mvprintw(10, (colunaspainel/5 * 2) - 30,"Fun: %d",pipe->regID_EX_atual.funct);
-    if(memoria != NULL && (pc-1) >= 0) mvprintw(12, (colunaspainel/5 * 2) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-1));
+    if(memoria != NULL && (pc-1) >= 0) mvprintw(12, (colunaspainel/5 * 2) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
     attroff(A_BOLD | COLOR_PAIR(3));
 
     attron(A_BOLD | COLOR_PAIR(4)); // EX
@@ -332,7 +332,7 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw(6, (colunaspainel/5 * 3) - 30,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
     mvprintw(7, (colunaspainel/5 * 3) - 30,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
     mvprintw(8, (colunaspainel/5 * 3) - 30,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
-    if(memoria != NULL && (pc-2) >= 0) mvprintw(12, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
+    if(memoria != NULL && (pc-2) >= 0) mvprintw(12, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
     attroff(A_BOLD | COLOR_PAIR(4));
 
     attron(A_BOLD | COLOR_PAIR(5)); // MEM
@@ -342,7 +342,7 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw(5, (colunaspainel/5 * 4) - 30,"RD  : %d",pipe->regMEM_WB_atual.rd);
     mvprintw(6, (colunaspainel/5 * 4) - 30,"EscMem : %d", pipe->regMEM_WB_atual.sinais.EscMem);
     mvprintw(7, (colunaspainel/5 * 4) - 30,"MemReg : %d", pipe->regMEM_WB_atual.sinais.MemParaReg);
-    if(memoria != NULL && (pc-3) >= 0) mvprintw(12, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
+    if(memoria != NULL && (pc-3) >= 0) mvprintw(12, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
     attroff(A_BOLD | COLOR_PAIR(5));
 
     attron(A_BOLD | COLOR_PAIR(6)); // WB
@@ -350,7 +350,7 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw(3, (colunaspainel/5 * 5) - 30,"Destino : $%d", pipe->regMEM_WB_novo.rd);
     mvprintw(4, (colunaspainel/5 * 5) - 30,"Valor   : %d", pipe->regMEM_WB_novo.sinais.MemParaReg ? pipe->regMEM_WB_novo.mem : pipe->regMEM_WB_novo.ulaSaida);
     mvprintw(5, (colunaspainel/5 * 5) - 30,"EscReg : %d", pipe->regMEM_WB_novo.sinais.EscReg);
-    if(memoria != NULL && (pc-4) >= 0) mvprintw(12, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
+    if(memoria != NULL && (pc-4) >= 0) mvprintw(12, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-5));
     attroff(A_BOLD | COLOR_PAIR(6));
 
     attron(A_BOLD | COLOR_PAIR(3));
