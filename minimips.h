@@ -75,6 +75,7 @@ typedef struct EX_MEM {
     sinaisUC sinais;
     uint8_t opcode;
     int8_t ulaSaida;
+    int8_t A;
     int8_t B;
     uint8_t rd;
     int8_t zero;
@@ -89,6 +90,7 @@ typedef struct MEM_WB {
     int8_t mem;
     int8_t ulaSaida;
     uint8_t rd;
+    int pc;
 } MEM_WB;
 
 typedef struct {

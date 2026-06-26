@@ -251,7 +251,7 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvvline(1, (colunaspainel / 5) * 4, ACS_VLINE, linhaspainel/3);//quarta coluna 
     mvvline(1, (colunaspainel / 5) * 4 - 1, ACS_VLINE, linhaspainel/3);
 
-    mvvline((linhaspainel/3) * 2, (colunaspainel / 5) * 4, ACS_VLINE, linhaspainel - 10);
+    mvvline((linhaspainel/3) * 2 + 1, (colunaspainel/5) * 4 + 1, ACS_VLINE, linhaspainel - 41);
 
     mvvline(1, colunaspainel - 3, ACS_VLINE, linhaspainel - 2);//quinta  coluna
     
@@ -294,11 +294,13 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvaddch(linhaspainel / 3 + 1, colunaspainel - 3, ACS_URCORNER);
     mvaddch((linhaspainel/3) * 2, 2, ACS_LLCORNER);
     mvaddch(((linhaspainel/3) * 2), colunaspainel - 3, ACS_LRCORNER);
+    mvaddch((linhaspainel/3) * 2 + 1, (colunaspainel/5) * 4, ACS_URCORNER);
 
     //cantos menu inferior
     mvaddch((linhaspainel / 3) * 2 + 1, 2, ACS_ULCORNER);
     mvaddch(linhaspainel - 3, (colunaspainel/5) * 4 + 1, ACS_LRCORNER);
     mvaddch((linhaspainel / 3) * 2 + 1, colunaspainel - 3, ACS_URCORNER);
+    mvaddch((linhaspainel/3) * 2 + 1, (colunaspainel / 5) * 4 + 1, ACS_ULCORNER);
     mvaddch(linhaspainel - 4, 2, ACS_LLCORNER);
     mvaddch(linhaspainel - 3, 2, ACS_ULCORNER);
 
@@ -321,36 +323,37 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw(8, (colunaspainel/5 * 2) - 30,"B  : %d",pipe->regID_EX_atual.B);
     mvprintw(9, (colunaspainel/5 * 2) - 30,"Imm: %d",pipe->regID_EX_atual.imm);
     mvprintw(10, (colunaspainel/5 * 2) - 30,"Fun: %d",pipe->regID_EX_atual.funct);
-    if(memoria != NULL && (pc-1) >= 0) mvprintw(12, (colunaspainel/5 * 2) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
+    if(memoria != NULL && (pc-1) >= 0) mvprintw(linhaspainel/3 - 1, (colunaspainel/5) * 2 - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
     attroff(A_BOLD | COLOR_PAIR(3));
 
     attron(A_BOLD | COLOR_PAIR(4)); // EX
     mvprintw(1, (colunaspainel/5 * 3) - colunaspainel/10 - 3, "  EX  ");
     mvprintw(3, (colunaspainel/5 * 3) - 30,"ULA : %d",pipe->regEX_MEM_atual.ulaSaida);
-    mvprintw(4, (colunaspainel/5 * 3) - 30,"B   : %d",pipe->regEX_MEM_atual.B);
-    mvprintw(5, (colunaspainel/5 * 3) - 30,"RD  : %d",pipe->regEX_MEM_atual.rd);
-    mvprintw(6, (colunaspainel/5 * 3) - 30,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
-    mvprintw(7, (colunaspainel/5 * 3) - 30,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
-    mvprintw(8, (colunaspainel/5 * 3) - 30,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
-    if(memoria != NULL && (pc-2) >= 0) mvprintw(12, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
+    mvprintw(4, (colunaspainel/5 * 3) - 30,"A   : %d",pipe->regEX_MEM_atual.A);
+    mvprintw(5, (colunaspainel/5 * 3) - 30,"B   : %d",pipe->regEX_MEM_atual.B);
+    mvprintw(6, (colunaspainel/5 * 3) - 30,"RD  : %d",pipe->regEX_MEM_atual.rd);
+    mvprintw(7, (colunaspainel/5 * 3) - 30,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
+    mvprintw(8, (colunaspainel/5 * 3) - 30,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
+    mvprintw(9, (colunaspainel/5 * 3) - 30,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
+    if(memoria != NULL && (pc-2) >= 0) mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
     attroff(A_BOLD | COLOR_PAIR(4));
 
     attron(A_BOLD | COLOR_PAIR(5)); // MEM
     mvprintw(1, (colunaspainel/5 * 4) - colunaspainel/10 - 4, "  MEM  ");
-    mvprintw(3, (colunaspainel/5 * 4) - 30,"ULA : %d",pipe->regMEM_WB_atual.ulaSaida);
-    mvprintw(4, (colunaspainel/5 * 4) - 30,"MEM : %d",pipe->regMEM_WB_atual.mem);
-    mvprintw(5, (colunaspainel/5 * 4) - 30,"RD  : %d",pipe->regMEM_WB_atual.rd);
-    mvprintw(6, (colunaspainel/5 * 4) - 30,"EscMem : %d", pipe->regMEM_WB_atual.sinais.EscMem);
-    mvprintw(7, (colunaspainel/5 * 4) - 30,"MemReg : %d", pipe->regMEM_WB_atual.sinais.MemParaReg);
-    if(memoria != NULL && (pc-3) >= 0) mvprintw(12, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
+    mvprintw(3, (colunaspainel/5 * 4) - 30,"ULA : %d",pipe->regMEM_WB_novo.ulaSaida);
+    mvprintw(4, (colunaspainel/5 * 4) - 30,"MEM : %d",pipe->regMEM_WB_novo.mem);
+    mvprintw(5, (colunaspainel/5 * 4) - 30,"RD  : %d",pipe->regMEM_WB_novo.rd);
+    mvprintw(6, (colunaspainel/5 * 4) - 30,"EscMem : %d", pipe->regMEM_WB_novo.sinais.EscMem);
+    mvprintw(7, (colunaspainel/5 * 4) - 30,"MemReg : %d", pipe->regMEM_WB_novo.sinais.MemParaReg);
+    if(memoria != NULL && (pc-3) >= 0) mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
     attroff(A_BOLD | COLOR_PAIR(5));
 
     attron(A_BOLD | COLOR_PAIR(6)); // WB
     mvprintw(1, (colunaspainel/5 * 5) - colunaspainel/10 - 4, "  WB  ");
-    mvprintw(3, (colunaspainel/5 * 5) - 30,"Destino : $%d", pipe->regMEM_WB_novo.rd);
-    mvprintw(4, (colunaspainel/5 * 5) - 30,"Valor   : %d", pipe->regMEM_WB_novo.sinais.MemParaReg ? pipe->regMEM_WB_novo.mem : pipe->regMEM_WB_novo.ulaSaida);
-    mvprintw(5, (colunaspainel/5 * 5) - 30,"EscReg : %d", pipe->regMEM_WB_novo.sinais.EscReg);
-    if(memoria != NULL && (pc-4) >= 0) mvprintw(12, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-5));
+    mvprintw(3, (colunaspainel/5 * 5) - 30,"Destino : $%d", pipe->regMEM_WB_atual.rd);
+    mvprintw(4, (colunaspainel/5 * 5) - 30,"Valor   : %d", pipe->regMEM_WB_atual.sinais.MemParaReg ? pipe->regMEM_WB_atual.mem : pipe->regMEM_WB_atual.ulaSaida);
+    mvprintw(5, (colunaspainel/5 * 5) - 30,"EscReg : %d",pipe->regMEM_WB_atual.sinais.EscReg);
+    if(memoria != NULL && (pc-4) >= 0) mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-5));
     attroff(A_BOLD | COLOR_PAIR(6));
 
     attron(A_BOLD | COLOR_PAIR(3));
