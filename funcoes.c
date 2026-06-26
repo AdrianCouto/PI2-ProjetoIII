@@ -267,16 +267,17 @@ int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *
     
     if(hazard == hazardDados) { 
         insereStall(pipe, estatInst);
+        (*pc)--; // Decrementa o PC para repetir a instrução
     }
     else if(hazard == hazardControle)
     {
-    if(pipe->regID_EX_atual.sinais.jump)
-        *pc = pipe->regID_EX_atual.addr;
+        if(pipe->regID_EX_atual.sinais.jump)
+            *pc = pipe->regID_EX_atual.addr;
 
-    else if(pipe->regEX_MEM_atual.sinais.branch)
-        *pc = pipe->regEX_MEM_atual.pc + pipe->regEX_MEM_atual.imm;
+        else if(pipe->regEX_MEM_atual.sinais.branch)
+            *pc = pipe->regEX_MEM_atual.pc + pipe->regEX_MEM_atual.imm;
 
-    insereFlush(pipe);
+        insereFlush(pipe);
     }
 
     // 3. BUSCA A PRÓXIMA INSTRUÇÃO
@@ -532,7 +533,7 @@ int8_t retornaMemoria(int *memDados, uint8_t enderecoULA) {
 }
 
 void Executa_IF(IF_ID *IF_ID, instrucao *memoria, int *pc) {
-    if(*pc >= 256 || memoria[*pc].instrucao == 0){
+    if(*pc >= 256){
         memset(IF_ID,0,sizeof(*IF_ID));
         return;
     }
@@ -594,6 +595,7 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB_atual) {
         valA = ID_EX->A;
     }
 
+    EX_MEM->A = valA;
     int valB_final;
     if (forwardB == 2) {
         valB_final = EX_MEM->ulaSaida;
@@ -619,6 +621,7 @@ void Executa_EX(ID_EX *ID_EX, EX_MEM *EX_MEM, MEM_WB *MEM_WB_atual) {
     EX_MEM->opcode = ID_EX->opcode;
     EX_MEM->B = valB_final;
     EX_MEM->sinais = ID_EX->sinais;
+    EX_MEM->pc = ID_EX->pc;
 
     if (ID_EX->sinais.RegDst)
         EX_MEM->rd = ID_EX->rd;
@@ -641,12 +644,13 @@ void Executa_MEM(EX_MEM *EX_MEM, MEM_WB *MEM_WB,int *memDados){
     MEM_WB->rd = EX_MEM->rd;
     MEM_WB->sinais = EX_MEM->sinais;
     MEM_WB->ulaSaida = EX_MEM->ulaSaida;
+    MEM_WB->pc = EX_MEM->pc;
 
     if(EX_MEM->sinais.EscMem){
         escreveMemDados(memDados, EX_MEM->ulaSaida, EX_MEM->B);
     }
 
-    if(EX_MEM->sinais.MemParaReg == 0){
+    if(EX_MEM->sinais.MemParaReg == 1){
         MEM_WB->mem = retornaMemoria(memDados,EX_MEM->ulaSaida);
     }
 }
@@ -669,7 +673,6 @@ void Executa_WB(MEM_WB *MEM_WB, int *bReg) {
 
         escreveRegistrador(bReg, MEM_WB->rd, dadoFinal, MEM_WB->sinais.EscReg);
     }
-
 }
 
 void insereStall(registradoresPipeline *pipe, estatInstrucoes *estat){
@@ -690,6 +693,13 @@ void insereFlush(registradoresPipeline *pipe) {
 
     memset(&pipe->regIF_ID_novo, 0, sizeof(IF_ID));
     memset(&pipe->regID_EX_novo, 0, sizeof(ID_EX));
+    pipe->ctrl.flushIF = 1;
+    pipe->ctrl.flushID = 1;
+
+    if(pipe->regEX_MEM_atual.sinais.branch){
+
+        memset(&pipe->regEX_MEM_novo, 0, sizeof(EX_MEM));
+    }
 }
 
 void ajustarPC(int *pc, int novoPC) {
@@ -1115,7 +1125,7 @@ char *nomeULA(uint8_t op){
             return "SUB";
 
         case 2:
-            return "AND";
+            return "SUB";
 
         case 3:
             return "OR";
