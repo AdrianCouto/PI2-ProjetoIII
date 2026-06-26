@@ -32,6 +32,8 @@ int main(){
 
     int pc = 0, opcao = -1, linhas = 0;
     estatInstrucoes estatInst = {0};
+    
+    
     instrucao *memoria = NULL;
     historico hist;
     hist.topo = 0;
@@ -40,6 +42,7 @@ int main(){
     int *memDados = inicializaMemDados();
     registradoresPipeline pipe = {0};
 
+    
     int selecionado = 0;
     int tecla;
     
@@ -210,16 +213,20 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     clear();
     printBorda(linhaspainel, colunaspainel);
 
-    attron(A_BOLD | COLOR_PAIR(1));
+   attron(A_BOLD | COLOR_PAIR(1));
     mvprintw(0, colunaspainel/2 - 11, " SIMULADOR DE PIPELINE ");
+    attroff(A_BOLD | COLOR_PAIR(1));
+
+    attron(A_BOLD | COLOR_PAIR(1));
+    mvprintw(linhaspainel/2 - 8, (colunaspainel/5) * 3 + 6, " TIPO DE HAZARD ");
     attroff(A_BOLD | COLOR_PAIR(1));
 
     if (ultimoHazard > 0) {
         attron(A_BOLD | A_BLINK | COLOR_PAIR(4));
         if (ultimoHazard == 1) {
-            mvprintw(0, 4, " [ HAZARD DE DADOS ] ");
+            mvprintw(linhaspainel/2 - 6, (colunaspainel/5) * 3 + 6, " [ HAZARD DE DADOS ] ");
         } else if (ultimoHazard == 2) {
-            mvprintw(0, 4, " [ HAZARD DE CONTROLE ] ");
+            mvprintw(linhaspainel/2 - 6, (colunaspainel/5) * 3 + 6, " [ HAZARD DE CONTROLE ] ");
         }
         attroff(A_BOLD | A_BLINK | COLOR_PAIR(4));
     }
@@ -308,7 +315,13 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
 
     attron(A_BOLD | COLOR_PAIR(2)); // IF
     mvprintw(1, (colunaspainel/5) - colunaspainel/10 - 2, "  IF  ");
-    mvprintw(3, (colunaspainel/5)/2 - 5,"PC : %d",pipe->regIF_ID_atual.pc);
+    
+    if(pipe->regIF_ID_atual.pc == -1) {
+        mvprintw(3, (colunaspainel/5)/2 - 5, "PC: --- NOP ---");
+    } 
+    else {
+        mvprintw(3, (colunaspainel/5)/2 - 5, "PC: %d", pipe->regIF_ID_atual.pc);
+    }
     mvprintw(4, ((colunaspainel/5)/2 - 5),"HEX: %04X",pipe->regIF_ID_atual.inst.instrucao);
     if(memoria != NULL) mvprintw(6, ((colunaspainel/5)/2 - 5),"BIN: %s",pipe->regIF_ID_atual.inst.mem);
     attroff(A_BOLD | COLOR_PAIR(2));
@@ -323,7 +336,12 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw(8, (colunaspainel/5 * 2) - 30,"B  : %d",pipe->regID_EX_atual.B);
     mvprintw(9, (colunaspainel/5 * 2) - 30,"Imm: %d",pipe->regID_EX_atual.imm);
     mvprintw(10, (colunaspainel/5 * 2) - 30,"Fun: %d",pipe->regID_EX_atual.funct);
-    if(memoria != NULL && (pc-1) >= 0) mvprintw(linhaspainel/3 - 1, (colunaspainel/5) * 2 - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
+    if(memoria != NULL && (pc-1) >= 0){
+        mvprintw(linhaspainel/3 - 1, (colunaspainel/5) * 2 - 30,"ASM: %s",imprimeInstrucao(memoria, pc-2));
+    }
+    else{
+        mvprintw(linhaspainel/3 - 1, (colunaspainel/5) * 2 - 30,"ASM: NOP");
+    }
     attroff(A_BOLD | COLOR_PAIR(3));
 
     attron(A_BOLD | COLOR_PAIR(4)); // EX
@@ -334,8 +352,14 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw(6, (colunaspainel/5 * 3) - 30,"RD  : %d",pipe->regEX_MEM_atual.rd);
     mvprintw(7, (colunaspainel/5 * 3) - 30,"ALU : %s",nomeULA(pipe->regEX_MEM_atual.sinais.ulaOp));
     mvprintw(8, (colunaspainel/5 * 3) - 30,"Branch : %d",pipe->regEX_MEM_atual.sinais.branch);
-    mvprintw(9, (colunaspainel/5 * 3) - 30,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
-    if(memoria != NULL && (pc-2) >= 0) mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
+    mvprintw(9, (colunaspainel/5 * 3) - 30,"ZeroULA : %d",pipe->regEX_MEM_atual.zero);
+    mvprintw(10, (colunaspainel/5 * 3) - 30,"Jump   : %d",pipe->regEX_MEM_atual.sinais.jump);
+    if(memoria != NULL && (pc-2) >= 0){
+         mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 3) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-3));
+    }
+    else{
+        mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 3) - 30,"ASM: NOP");
+    }
     attroff(A_BOLD | COLOR_PAIR(4));
 
     attron(A_BOLD | COLOR_PAIR(5)); // MEM
@@ -345,7 +369,12 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw(5, (colunaspainel/5 * 4) - 30,"RD  : %d",pipe->regMEM_WB_novo.rd);
     mvprintw(6, (colunaspainel/5 * 4) - 30,"EscMem : %d", pipe->regMEM_WB_novo.sinais.EscMem);
     mvprintw(7, (colunaspainel/5 * 4) - 30,"MemReg : %d", pipe->regMEM_WB_novo.sinais.MemParaReg);
-    if(memoria != NULL && (pc-3) >= 0) mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
+    if(memoria != NULL && (pc-3) >= 0){
+        mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 4) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-4));
+    }
+    else{
+        mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 4) - 30,"ASM: NOP");
+    }
     attroff(A_BOLD | COLOR_PAIR(5));
 
     attron(A_BOLD | COLOR_PAIR(6)); // WB
@@ -353,18 +382,23 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw(3, (colunaspainel/5 * 5) - 30,"Destino : $%d", pipe->regMEM_WB_atual.rd);
     mvprintw(4, (colunaspainel/5 * 5) - 30,"Valor   : %d", pipe->regMEM_WB_atual.sinais.MemParaReg ? pipe->regMEM_WB_atual.mem : pipe->regMEM_WB_atual.ulaSaida);
     mvprintw(5, (colunaspainel/5 * 5) - 30,"EscReg : %d",pipe->regMEM_WB_atual.sinais.EscReg);
-    if(memoria != NULL && (pc-4) >= 0) mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-5));
+    if(memoria != NULL && (pc-4) >= 0){
+        mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 5) - 30,"ASM: %s",imprimeInstrucao(memoria, pc-5));
+    }
+    else{
+        mvprintw(linhaspainel/3 - 1, (colunaspainel/5 * 5) - 30,"ASM: NOP");
+    }
     attroff(A_BOLD | COLOR_PAIR(6));
 
     attron(A_BOLD | COLOR_PAIR(3));
     mvprintw(linhaspainel/3 + 2, 4, "REGISTRO DE INSTRUÇÕES:");
     attroff(A_BOLD | COLOR_PAIR(3));
 
-    Node *linhasLog[8];
+    Node *linhasLog[13];
     int qtdEncontrada = 0;
     Node *atualNode = hist->topo;
     
-    while (atualNode != NULL && qtdEncontrada < 8) {
+    while (atualNode != NULL && qtdEncontrada < 13) {
         linhasLog[qtdEncontrada] = atualNode;
         qtdEncontrada++;
         atualNode = atualNode->next;
@@ -376,7 +410,7 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     for (int i = qtdEncontrada - 1; i >= 0; i--) {
         int pcSalvo = linhasLog[i]->st.pc;
         if(memoria != NULL) {
-            mvprintw(linhaVisualInicial + idxPrint, 4, "Ciclo %-2d |  Instrução: %-25s",  linhasLog[i]->st.estat.ciclos, imprimeInstrucao(memoria, pcSalvo));
+            mvprintw(linhaVisualInicial + idxPrint, 4, "Ciclo %-2d |  Instrução: %-25s",  linhasLog[i]->st.estat.ciclos, imprimeInstrucao(memoria, pcSalvo - 1));
         }
         idxPrint++;
     }
@@ -395,12 +429,28 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
 
     mvprintw((linhaspainel/3 + 4) + 0, 58,"Ciclos : %d",estatInst->ciclos);
     mvprintw((linhaspainel/3 + 4) + 1, 58,"Instr  : %d",estatInst->total);
-    mvprintw((linhaspainel/3 + 4) + 2, 58,"Stalls : %d",estatInst->stalls);
-    mvprintw((linhaspainel/3 + 4) + 3, 58,"CPI    : %.2f",estatInst->CPI);
-    mvprintw((linhaspainel/3 + 4) + 4, 58,"Instruções por Tipo :");
-    mvprintw((linhaspainel/3 + 4) + 5, 58,"Total Tipo R : %d | ADD: %d | SUB: %d | AND: %d | OR: %d",estatInst->tipoR, estatInst->add, estatInst->sub, estatInst->and, estatInst->or);
-    mvprintw((linhaspainel/3 + 4) + 6, 58,"Total Tipo I : %d | LOAD: %d | STORE: %d | ADDI: %d | BEQ: %d",estatInst->tipoI, estatInst->lw, estatInst->sw, estatInst->addi, estatInst->beq);
-    mvprintw((linhaspainel/3 + 4) + 7, 58,"Total Tipo J : %d | JUMP: %d",estatInst->tipoJ, estatInst->j);
+    mvprintw((linhaspainel/3 + 4) + 2, 58,"CPI    : %.2f",estatInst->CPI);
+    mvprintw((linhaspainel/3 + 4) + 3, 58,"Stalls : %d",estatInst->stalls);
+    mvprintw((linhaspainel/3 + 4) + 4, 58,"Flushes: %d",estatInst->flushes);
+    
+    
+    attron(A_BOLD | COLOR_PAIR(3));
+    mvprintw((linhaspainel/3) + 2, (colunaspainel/5) * 3 - 30," INSTRUÇÕES POR TIPO ");
+    attroff(A_BOLD | COLOR_PAIR(3));
+    mvprintw((linhaspainel/3) + 4,  (colunaspainel/5) * 3 - 30, "Total Tipo R : %d", estatInst->tipoR);
+    mvprintw((linhaspainel/3) + 5,  (colunaspainel/5) * 3 - 30, "ADD          : %d", estatInst->add);
+    mvprintw((linhaspainel/3) + 6,  (colunaspainel/5) * 3 - 30, "SUB          : %d", estatInst->sub);
+    mvprintw((linhaspainel/3) + 7,  (colunaspainel/5) * 3 - 30, "AND          : %d", estatInst->and);
+    mvprintw((linhaspainel/3) + 8,  (colunaspainel/5) * 3 - 30, "OR           : %d", estatInst->or);
+
+    mvprintw((linhaspainel/3) + 10, (colunaspainel/5) * 3 - 30, "Total Tipo I : %d", estatInst->tipoI);
+    mvprintw((linhaspainel/3) + 11, (colunaspainel/5) * 3 - 30, "LOAD (LW)    : %d", estatInst->lw);
+    mvprintw((linhaspainel/3) + 12, (colunaspainel/5) * 3 - 30, "STORE (SW)   : %d", estatInst->sw);
+    mvprintw((linhaspainel/3) + 13, (colunaspainel/5) * 3 - 30, "ADDI         : %d", estatInst->addi);
+    mvprintw((linhaspainel/3) + 14, (colunaspainel/5) * 3 - 30, "BEQ          : %d", estatInst->beq);
+
+    mvprintw((linhaspainel/3) + 16, (colunaspainel/5) * 3 - 30, "Total Tipo J : %d", estatInst->tipoJ);
+    mvprintw((linhaspainel/3) + 17, (colunaspainel/5) * 3 - 30, "JUMP         : %d", estatInst->j);
 
     attron(A_BOLD | COLOR_PAIR(4));
     mvprintw(linhaspainel - 3, 3, " OPÇÕES DE EXECUÇÃO ");
