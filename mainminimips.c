@@ -432,6 +432,8 @@ static void desenhaInterfacePrincipal(int colunaspainel, int linhaspainel, regis
     mvprintw((linhaspainel/3 + 4) + 2, 58,"CPI    : %.2f",estatInst->CPI);
     mvprintw((linhaspainel/3 + 4) + 3, 58,"Stalls : %d",estatInst->stalls);
     mvprintw((linhaspainel/3 + 4) + 4, 58,"Flushes: %d",estatInst->flushes);
+    mvprintw((linhaspainel/3 + 4) + 5, 58,"Hazard de Controle: %d",estatInst->hazardControle);
+    mvprintw((linhaspainel/3 + 4) + 6, 58,"Hazard de Dados: %d",estatInst->hazardDados);
     
     
     attron(A_BOLD | COLOR_PAIR(3));

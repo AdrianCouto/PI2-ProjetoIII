@@ -199,10 +199,8 @@ void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, in
 
 int8_t extensorBit(int8_t imm){
     imm = imm<<2;
-    //printf("\n%d", imm);      // 111111 = -1  <- 00111111 << 2 -> 111111100 >> 2 -> 11111111
 
     imm = imm>>2;
-    //printf("\n%d", imm);
 
     return imm;
 }
@@ -263,9 +261,11 @@ int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *
     
     if(hazard == hazardDados) { 
         insereStall(pipe, estatInst);
+        estatInst->hazardDados++;
     }
     else if(hazard == hazardControle)
     {
+        estatInst->hazardControle++;
         if(pipe->regID_EX_atual.sinais.jump){
             *pc = pipe->regID_EX_atual.addr;
         }
@@ -276,13 +276,11 @@ int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *
         estatInst->flushes++;
     }
 
-    // 3. BUSCA A PRÓXIMA INSTRUÇÃO
     Executa_IF(&pipe->regIF_ID_novo, memoria, pc);
     
-    // 4. ATUALIZA OS VALORES DE "NOVO" PARA "ATUAL" PARA O PRÓXIMO CICLO
     atualiza_regs_pipeline(pipe);
     
-    // 5. ATUALIZA CONTADORES DE CICLO E CPI
+    // ATUALIZA CONTADORES DE CICLO E CPI
     estatInst->ciclos++;
     if (estatInst->total > 0) {
         estatInst->CPI = (float)estatInst->ciclos / estatInst->total;
