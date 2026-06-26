@@ -33,10 +33,10 @@ tipoHazard detectaHazardDados(IF_ID *IF_ID, ID_EX *ID_EX, EX_MEM *EX_MEM) {
 }
 
 tipoHazard detectaHazardControle(ID_EX *ID_EX, EX_MEM *EX_MEM){
-    if(ID_EX->sinais.jump==1){
+    if(EX_MEM->sinais.branch==1 && EX_MEM->zero==1){
         return 1;        
     }
-    else if(EX_MEM->sinais.branch==1 && EX_MEM->zero==1){
+    else if(ID_EX->sinais.jump==1){
         return 1;
     }
     

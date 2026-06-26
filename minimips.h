@@ -17,8 +17,9 @@ typedef struct {
     int tipoR;
     int total;
     int add, sub, and, or, addi, beq, lw, sw, j;
-    int ciclos, stalls;
+    int ciclos, stalls, flushes;
     float CPI;
+    int hazardDados, hazardControle;
 } estatInstrucoes;
 
 // struct de sinais

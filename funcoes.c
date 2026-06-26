@@ -160,15 +160,14 @@ void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, in
                     attroff(A_BOLD);
 
                     for(int linha = 0; linha < 32; linha++){
-
-                        mvprintw(linha + 4,   2, "%3d: %16s", linha,       memoria[linha].mem);
-                        mvprintw(linha + 4,  25, "%3d: %16s", linha + 32,  memoria[linha + 32].mem);
-                        mvprintw(linha + 4,  48, "%3d: %16s", linha + 64,  memoria[linha + 64].mem);
-                        mvprintw(linha + 4,  71, "%3d: %16s", linha + 96,  memoria[linha + 96].mem);
-                        mvprintw(linha + 4,  94, "%3d: %16s", linha + 128, memoria[linha + 128].mem);
-                        mvprintw(linha + 4, 117, "%3d: %16s", linha + 160, memoria[linha + 160].mem);
-                        mvprintw(linha + 4, 140, "%3d: %16s", linha + 192, memoria[linha + 192].mem);
-                        mvprintw(linha + 4, 163, "%3d: %16s", linha + 224, memoria[linha + 224].mem);
+                        mvprintw(linha + 4, 2, "%3d: %16s", linha, memoria[linha].mem);
+                        mvprintw(linha + 4, colunaspainel/8, "%3d: %16s", linha + 32,  memoria[linha + 32].mem);
+                        mvprintw(linha + 4, (colunaspainel/8)*2, "%3d: %16s", linha + 64,  memoria[linha + 64].mem);
+                        mvprintw(linha + 4, (colunaspainel/8)*3, "%3d: %16s", linha + 96,  memoria[linha + 96].mem);
+                        mvprintw(linha + 4, (colunaspainel/8)*4, "%3d: %16s", linha + 128, memoria[linha + 128].mem);
+                        mvprintw(linha + 4, (colunaspainel/8)*5, "%3d: %16s", linha + 160, memoria[linha + 160].mem);
+                        mvprintw(linha + 4, (colunaspainel/8)*6, "%3d: %16s", linha + 192, memoria[linha + 192].mem);
+                        mvprintw(linha + 4, (colunaspainel/8)*7, "%3d: %16s", linha + 224, memoria[linha + 224].mem);
                     }
 
                     refresh();
@@ -177,21 +176,17 @@ void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, in
 
                 if(selecionado == 1){
                     clear();
-
                     printBorda(linhaspainel, colunaspainel);
-
                     mvprintw(2, (colunaspainel/2), "Memoria de Dados");
-
                     for(int linha = 0; linha < 32; linha++) {
-
-                        mvprintw(linha + 4,   2, "%3d: %3d", linha,       memDados[linha]);
-                        mvprintw(linha + 4,  22, "%3d: %3d", linha + 32,  memDados[linha + 32]);
-                        mvprintw(linha + 4,  42, "%3d: %3d", linha + 64,  memDados[linha + 64]);
-                        mvprintw(linha + 4,  62, "%3d: %3d", linha + 96,  memDados[linha + 96]);
-                        mvprintw(linha + 4,  82, "%3d: %3d", linha + 128, memDados[linha + 128]);
-                        mvprintw(linha + 4, 102, "%3d: %3d", linha + 160, memDados[linha + 160]);
-                        mvprintw(linha + 4, 122, "%3d: %3d", linha + 192, memDados[linha + 192]);
-                        mvprintw(linha + 4, 142, "%3d: %3d", linha + 224, memDados[linha + 224]);
+                        mvprintw(linha + 4, 2, "%3d: %3d", linha,       memDados[linha]);
+                        mvprintw(linha + 4, colunaspainel/8, "%3d: %3d", linha + 32,  memDados[linha + 32]);
+                        mvprintw(linha + 4, (colunaspainel/8)*2, "%3d: %3d", linha + 64,  memDados[linha + 64]);
+                        mvprintw(linha + 4, (colunaspainel/8)*3, "%3d: %3d", linha + 96,  memDados[linha + 96]);
+                        mvprintw(linha + 4, (colunaspainel/8)*4, "%3d: %3d", linha + 128, memDados[linha + 128]);
+                        mvprintw(linha + 4, (colunaspainel/8)*5, "%3d: %3d", linha + 160, memDados[linha + 160]);
+                        mvprintw(linha + 4, (colunaspainel/8)*6, "%3d: %3d", linha + 192, memDados[linha + 192]);
+                        mvprintw(linha + 4, (colunaspainel/8)*7, "%3d: %3d", linha + 224, memDados[linha + 224]);
                     }
                     refresh();
                     getch();
@@ -204,10 +199,8 @@ void imprimeMemorias(int colunaspainel, int linhaspainel, instrucao *memoria, in
 
 int8_t extensorBit(int8_t imm){
     imm = imm<<2;
-    //printf("\n%d", imm);      // 111111 = -1  <- 00111111 << 2 -> 111111100 >> 2 -> 11111111
 
     imm = imm>>2;
-    //printf("\n%d", imm);
 
     return imm;
 }
@@ -265,28 +258,29 @@ int step_pipeline(historico *hist, instrucao *memoria, int *bReg, int *pc, int *
 
     tipoHazard hazard = unidadeDetecHazards(&pipe->regIF_ID_atual, &pipe->regID_EX_atual, &pipe->regEX_MEM_atual);
     
+    
     if(hazard == hazardDados) { 
         insereStall(pipe, estatInst);
-        (*pc)--; // Decrementa o PC para repetir a instrução
+        estatInst->hazardDados++;
     }
     else if(hazard == hazardControle)
     {
-        if(pipe->regID_EX_atual.sinais.jump)
+        estatInst->hazardControle++;
+        if(pipe->regID_EX_atual.sinais.jump){
             *pc = pipe->regID_EX_atual.addr;
-
-        else if(pipe->regEX_MEM_atual.sinais.branch)
+        }
+        if(pipe->regEX_MEM_atual.sinais.branch && pipe->regEX_MEM_atual.zero){
             *pc = pipe->regEX_MEM_atual.pc + pipe->regEX_MEM_atual.imm;
-
+        }
         insereFlush(pipe);
+        estatInst->flushes++;
     }
 
-    // 3. BUSCA A PRÓXIMA INSTRUÇÃO
     Executa_IF(&pipe->regIF_ID_novo, memoria, pc);
     
-    // 4. ATUALIZA OS VALORES DE "NOVO" PARA "ATUAL" PARA O PRÓXIMO CICLO
     atualiza_regs_pipeline(pipe);
     
-    // 5. ATUALIZA CONTADORES DE CICLO E CPI
+    // ATUALIZA CONTADORES DE CICLO E CPI
     estatInst->ciclos++;
     if (estatInst->total > 0) {
         estatInst->CPI = (float)estatInst->ciclos / estatInst->total;
@@ -696,10 +690,10 @@ void insereFlush(registradoresPipeline *pipe) {
     pipe->ctrl.flushIF = 1;
     pipe->ctrl.flushID = 1;
 
-    if(pipe->regEX_MEM_atual.sinais.branch){
-
+    if(pipe->regEX_MEM_atual.sinais.branch && pipe->regEX_MEM_atual.zero){
         memset(&pipe->regEX_MEM_novo, 0, sizeof(EX_MEM));
     }
+
 }
 
 void ajustarPC(int *pc, int novoPC) {
